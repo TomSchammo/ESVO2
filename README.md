@@ -264,3 +264,7 @@ The original ESVO2 trajectories and GT poses for various sequences on the 5 data
 
 * The `esvo2_core` is implemented using hyper-thread techniques. Please modify the number of threads used for mapping and tracking according to your PC's capability. The parameters can be found in `include/esvo2_core/tools/utils.h`.
 * Note that ESVO2 is non-deterministic, namely results may be different each time you run it on the same rosbag file. This is due to stochastic operations involved in the tracking, and also, the parallelism of the system. The performance differs according to the condition of your PC, e.g. you will get better efficiency if you turn off all other running programmes.
+
+# 6. Contact us
+
+For questions or inquiries, please feel free to contact us at junkainiu@hnu.edu.cn.
