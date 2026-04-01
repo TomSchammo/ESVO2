@@ -74,27 +74,27 @@ int main(int argc, char* argv[])
 
   if(!bag_src.isOpen())
   {
-    ROS_INFO("No rosbag is found in the give path.");
+    RCLCPP_INFO(this->get_logger(), "No rosbag is found in the give path.");
     exit(-1);
   }
   else
   {
-    ROS_INFO("***********Input Bag File Name ***********");
-    ROS_INFO(argv[1]);
-    ROS_INFO(argv[2]);
-    ROS_INFO("******************************************");
+    RCLCPP_INFO(this->get_logger(), "***********Input Bag File Name ***********");
+    RCLCPP_INFO(this->get_logger(), argv[1]);
+    RCLCPP_INFO(this->get_logger(), argv[2]);
+    RCLCPP_INFO(this->get_logger(), "******************************************");
   }
 
   if(!bag_dst.isOpen())
   {
-    ROS_INFO("The dst bag is not opened.");
+    RCLCPP_INFO(this->get_logger(), "The dst bag is not opened.");
     exit(-1);
   }
   else
   {
-    ROS_INFO("***********Output Bag File Name ***********");
-    ROS_INFO(argv[3]);
-    ROS_INFO("***************************");
+    RCLCPP_INFO(this->get_logger(), "***********Output Bag File Name ***********");
+    RCLCPP_INFO(this->get_logger(), argv[3]);
+    RCLCPP_INFO(this->get_logger(), "***************************");
   }
   ros::Time start_time;
   ros::Time end_time;

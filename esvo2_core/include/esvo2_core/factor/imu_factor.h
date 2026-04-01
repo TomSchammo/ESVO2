@@ -73,7 +73,7 @@ public:
 
             if (pre_integration->jacobian.maxCoeff() > 1e8 || pre_integration->jacobian.minCoeff() < -1e8)
             {
-                ROS_WARN("numerical unstable in preintegration");
+                RCLCPP_WARN(rclcpp::get_logger("imu_factor"), "numerical unstable in preintegration");
             }
 
             if (jacobians[0])
@@ -97,7 +97,7 @@ public:
 
                 if (jacobian_pose_i.maxCoeff() > 1e8 || jacobian_pose_i.minCoeff() < -1e8)
                 {
-                    ROS_WARN("numerical unstable in preintegration");
+                    RCLCPP_WARN(rclcpp::get_logger("imu_factor"), "numerical unstable in preintegration");
                 }
             }
             if (jacobians[1])

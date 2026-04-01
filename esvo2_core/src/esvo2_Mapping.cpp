@@ -773,7 +773,7 @@ namespace esvo2_core
       const double dt = stamp_first_event.toSec() - tf_lastest_common_time_.toSec();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
-        ROS_INFO("Inconsistent event timestamps detected <stampedPoseCallback> (new: %f, old %f), resetting.",
+        RCLCPP_INFO(this->get_logger(), "Inconsistent event timestamps detected <stampedPoseCallback> (new: %f, old %f), resetting.",
                  stamp_first_event.toSec(), tf_lastest_common_time_.toSec());
         reset();
       }
@@ -833,7 +833,7 @@ namespace esvo2_core
       const double dt = stamp_first_event.toSec() - EQ.back().ts.toSec();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
-        ROS_INFO("Inconsistent event timestamps detected <eventCallback> (new: %f, old %f), resetting.",
+        RCLCPP_INFO(this->get_logger(), "Inconsistent event timestamps detected <eventCallback> (new: %f, old %f), resetting.",
                  stamp_first_event.toSec(), events_left_.back().ts.toSec());
         reset();
       }
@@ -887,7 +887,7 @@ namespace esvo2_core
       const double dt = time_surface_left->header.stamp.toSec() - stamp_last_image.toSec();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
-        ROS_INFO("Inconsistent frame timestamp detected <timeSurfaceCallback> (new: %f, old %f), resetting.",
+        RCLCPP_INFO(this->get_logger(), "Inconsistent frame timestamp detected <timeSurfaceCallback> (new: %f, old %f), resetting.",
                  time_surface_left->header.stamp.toSec(), stamp_last_image.toSec());
         reset();
       }
@@ -904,7 +904,7 @@ namespace esvo2_core
     }
     catch (cv_bridge::Exception &e)
     {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
       return;
     }
     // push back the new time surface map
@@ -935,7 +935,7 @@ namespace esvo2_core
       const double dt = AA_left->header.stamp.toSec() - stamp_last_image.toSec();
       if (std::fabs(dt) >= max_time_diff_before_reset_s)
       {
-        ROS_INFO("Inconsistent frame timestamp detected <AACallback> (new: %f, old %f), resetting.",
+        RCLCPP_INFO(this->get_logger(), "Inconsistent frame timestamp detected <AACallback> (new: %f, old %f), resetting.",
                  AA_left->header.stamp.toSec(), stamp_last_image.toSec());
         reset();
       }
@@ -948,7 +948,7 @@ namespace esvo2_core
     }
     catch (cv_bridge::Exception &e)
     {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
       return;
     }
 

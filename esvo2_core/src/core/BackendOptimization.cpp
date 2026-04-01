@@ -299,8 +299,8 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
         Eigen::Quaterniond r2(Rc_g[i]);
 
         double angular_distance = 180 / M_PI * r1.angularDistance(r2);
-        ROS_DEBUG(
-            "%d %f", i, angular_distance);
+        RCLCPP_DEBUG(
+            rclcpp::get_logger("backend_optimization"), "%d %f", i, angular_distance);
 
         double huber = angular_distance > 5.0 ? 5.0 / angular_distance : 1.0;
         ++sum_ok;
@@ -350,7 +350,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
         b += tmp_A.transpose() * tmp_b;
       }
       Bgs = A.ldlt().solve(b);
-      ROS_WARN_STREAM("gyroscope bias initial calibration " << Bgs.transpose());
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("backend_optimization"), "gyroscope bias initial calibration " << Bgs.transpose());
     }
 
     bool BackendOptimization::LinearAlignment(Eigen::Vector3d &g, Eigen::VectorXd &x)

@@ -74,8 +74,8 @@ void PerspectiveCamera::preComputeRectifiedCoordinate()
     cv::cv2eigen(cvDstMask, UndistortRectify_mask_);
 //    LOG(INFO) << "#################### UndistortRectify_mask_.size: " << UndistortRectify_mask_.size();
 #else
-    ROS_ERROR_ONCE("You need OpenCV >= 3.0 to use the equidistant camera model.");
-    ROS_ERROR_ONCE("Will not publish rectified images.");
+    RCLCPP_ERROR_ONCE(this->get_logger(), "You need OpenCV >= 3.0 to use the equidistant camera model.");
+    RCLCPP_ERROR_ONCE(this->get_logger(), "Will not publish rectified images.");
 #endif
   }
   else if (distortion_model_ == "equidistant")
@@ -95,8 +95,8 @@ void PerspectiveCamera::preComputeRectifiedCoordinate()
 
 //    LOG(INFO) << "#################### UndistortRectify_mask_.size: " << UndistortRectify_mask_.size();
 #else
-    ROS_ERROR_ONCE("You need OpenCV >= 3.0 to use the equidistant camera model.");
-    ROS_ERROR_ONCE("Will not publish rectified images.");
+    RCLCPP_ERROR_ONCE(this->get_logger(), "You need OpenCV >= 3.0 to use the equidistant camera model.");
+    RCLCPP_ERROR_ONCE(this->get_logger(), "Will not publish rectified images.");
 #endif
   }
   else

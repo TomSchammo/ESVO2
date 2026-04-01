@@ -479,7 +479,7 @@ esvo2_Tracking::timeSurface_NegaTS_Callback(
   }
   catch (cv_bridge::Exception& e)
   {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
+    RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
     return;
   }
   std::lock_guard<std::mutex> lock(data_mutex_);

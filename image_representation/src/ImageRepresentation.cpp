@@ -57,7 +57,7 @@ namespace image_representation
     nh_private.param("calibInfoDir", calibInfoDir_, std::string("path is not given"));
     if (!loadCalibInfo(calibInfoDir_, is_left_))
     {
-      ROS_ERROR("Load Calib Info Error!!!  Given path is: %s", calibInfoDir_.c_str());
+      RCLCPP_ERROR(this->get_logger(), "Load Calib Info Error!!!  Given path is: %s", calibInfoDir_.c_str());
     }
 
     if(is_left_)
@@ -84,7 +84,7 @@ namespace image_representation
   {
     sensor_size_ = cv::Size(width, height);
     bSensorInitialized_ = true;
-    ROS_INFO("Sensor size: (%d x %d)", sensor_size_.width, sensor_size_.height);
+    RCLCPP_INFO(this->get_logger(), "Sensor size: (%d x %d)", sensor_size_.width, sensor_size_.height);
 
     representation_TS_ = cv::Mat::zeros(sensor_size_, CV_32F);
     representation_AA_ = cv::Mat::zeros(sensor_size_, CV_8U);
@@ -434,7 +434,7 @@ namespace image_representation
                                              rectification_matrix_, projection_matrix_,
                                              sensor_size, CV_32FC1, undistort_map1_, undistort_map2_);
         bCamInfoAvailable_ = true;
-        ROS_INFO("Camera information is loaded (Distortion model %s).", distortion_model_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Camera information is loaded (Distortion model %s).", distortion_model_.c_str());
       }
       else if (distortion_model_ == "plumb_bob")
       {
@@ -442,11 +442,11 @@ namespace image_representation
                                     rectification_matrix_, projection_matrix_,
                                     sensor_size, CV_32FC1, undistort_map1_, undistort_map2_);
         bCamInfoAvailable_ = true;
-        ROS_INFO("Camera information is loaded (Distortion model %s).", distortion_model_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Camera information is loaded (Distortion model %s).", distortion_model_.c_str());
       }
       else
       {
-        ROS_ERROR_ONCE("Distortion model %s is not supported.", distortion_model_.c_str());
+        RCLCPP_ERROR_ONCE(this->get_logger(), "Distortion model %s is not supported.", distortion_model_.c_str());
 
         return bCamInfoAvailable_;
       }
@@ -469,18 +469,18 @@ namespace image_representation
       {
         cv::undistortPoints(RawCoordinates, RectCoordinates, camera_matrix_, dist_coeffs_,
                             rectification_matrix_, projection_matrix_);
-        ROS_INFO("Undistorted-Rectified Look-Up Table with Distortion model: %s", distortion_model_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Undistorted-Rectified Look-Up Table with Distortion model: %s", distortion_model_.c_str());
       }
       else if (distortion_model_ == "equidistant")
       {
         cv::fisheye::undistortPoints(
             RawCoordinates, RectCoordinates, camera_matrix_, dist_coeffs_,
             rectification_matrix_, projection_matrix_);
-        ROS_INFO("Undistorted-Rectified Look-Up Table with Distortion model: %s", distortion_model_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Undistorted-Rectified Look-Up Table with Distortion model: %s", distortion_model_.c_str());
       }
       else
       {
-        ROS_INFO("Unknown distortion model is provided.");
+        RCLCPP_INFO(this->get_logger(), "Unknown distortion model is provided.");
         return bCamInfoAvailable_;
       }
       // load look-up table
@@ -489,7 +489,7 @@ namespace image_representation
         precomputed_rectified_points_.col(i) = Eigen::Matrix<double, 2, 1>(
             RectCoordinates(i).x, RectCoordinates(i).y);
       }
-      ROS_INFO("Undistorted-Rectified Look-Up Table has been computed.");
+      RCLCPP_INFO(this->get_logger(), "Undistorted-Rectified Look-Up Table has been computed.");
     }
     else
     {
