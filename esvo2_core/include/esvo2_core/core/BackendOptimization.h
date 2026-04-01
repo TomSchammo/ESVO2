@@ -2,6 +2,7 @@
 #define ESVO2_CORE_CORE_BACKEND_H
 
 // #include <esvo2_core/esvo2_Mapping.h>
+#include <rclcpp/rclcpp.hpp>
 #include <esvo2_core/tools/utils.h>
 #include <esvo2_core/container/CameraSystem.h>
 #include <esvo2_core/container/TimeSurfaceObservation.h>
@@ -9,12 +10,13 @@
 #include <esvo2_core/factor/pose_local_parameterization.h>
 #include <esvo2_core/factor/imu_factor.h>
 #include <esvo2_core/container/DepthMap.h>
-#include <events_repacking_tool/V_ba_bg.h>
-#include <tf/tf.h>
+#include <events_repacking_tool/msg/v_ba_bg.hpp>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include <minkindr_conversions/kindr_tf.h>
 #include <esvo2_core/tools/Visualization.h>
-#include <opencv4/opencv2/imgproc.hpp>
-#include <opencv4/opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/core.hpp>
 
 namespace esvo2_core
 {
@@ -27,10 +29,10 @@ namespace esvo2_core
     const int WINDOW_SIZE = 4;
     struct DepthPointFrame
     {
-      ros::Time timestamp_;
+      rclcpp::Time timestamp_;
       std::vector<DepthPoint> DepthPoints_;
 
-      DepthPointFrame(ros::Time t, std::vector<DepthPoint> DepthPoints)
+      DepthPointFrame(rclcpp::Time t, std::vector<DepthPoint> DepthPoints)
       {
         timestamp_ = t;
         DepthPoints_ = DepthPoints;
@@ -51,7 +53,7 @@ namespace esvo2_core
 
       void setProblem(std::deque<DepthPointFrame> *dqvDepthPoints,
                       TimeSurfaceHistory *pTS_history,
-                      ros::Publisher *pV_ba_bg_pub,
+                      rclcpp::Publisher<events_repacking_tool::msg::VBaBg>::SharedPtr pV_ba_bg_pub,
                       bool bUSE_IMU);
       void sloveProblem();
 
@@ -73,13 +75,13 @@ namespace esvo2_core
       void slideWindow();
       bool isOrthogonal(const Eigen::Matrix3d &matrix);
       Eigen::Matrix3d fixRotationMatrix(const Eigen::Matrix3d &R);
-      // bool getPoseAt(const ros::Time &t, esvo2_core::Transformation &Tr, const std::string& source_frame);
+      // bool getPoseAt(const rclcpp::Time &t, esvo2_core::Transformation &Tr, const std::string& source_frame);
 
     private:
       CameraSystem::Ptr camSysPtr_;
       std::deque<DepthPointFrame> *pDepthPoints_;
       TimeSurfaceHistory *pTS_history_;
-      ros::Publisher *pV_ba_bg_pub_;
+      rclcpp::Publisher<events_repacking_tool::msg::VBaBg>::SharedPtr pV_ba_bg_pub_;
       bool initVsFlag, bUSE_IMU_;
 
       Eigen::Vector3d TIC_ = Eigen::Vector3d::Zero();
@@ -98,11 +100,12 @@ namespace esvo2_core
 
       IntegrationBase *pre_integrations[(WINDOW_SIZE + 1)];
       Eigen::Vector3d acc_0, gyr_0;
-      std::shared_ptr<tf::Transformer> tf_;
+      std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+      std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
       std::vector<double> time_of_pts_;
       Eigen::Matrix3d K_, K_of_pts_, K_pts_inv_;
       Eigen::Matrix4d T_rect_raw_;
-      const string world_frame_id_ = "world";
+      const std::string world_frame_id_ = "world";
       const std::string dvs_frame_id_ = "dvs";
       Eigen::Matrix4d T_wopt_window0_;
     };

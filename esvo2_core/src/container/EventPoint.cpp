@@ -8,7 +8,7 @@ EventPoint::EventPoint()
 {
   row_ = 0;
   col_ = 0;
-  ts_ = ros::Time();
+  ts_ = rclcpp::Time();
   polarity_ = 0;
 }
 
@@ -16,11 +16,11 @@ EventPoint::EventPoint(size_t row, size_t col)
 {
   row_ = row;
   col_ = col;
-  ts_ = ros::Time();
+  ts_ = rclcpp::Time();
   polarity_ = 0;
 }
 
-EventPoint::EventPoint(size_t row, size_t col, ros::Time &ts, uint8_t polarity)
+EventPoint::EventPoint(size_t row, size_t col, rclcpp::Time &ts, uint8_t polarity)
 {
   row_ = row;
   col_ = col;
@@ -43,7 +43,7 @@ EventPoint::col() const
   return col_;
 }
 
-ros::Time
+rclcpp::Time
 EventPoint::ts() const
 {
   return ts_;
@@ -58,7 +58,7 @@ EventPoint::polarity() const
 bool
 EventPoint::valid() const
 {
-  return ts_.toSec() > 0;
+  return ts_.seconds() > 0;
 }
 
 void

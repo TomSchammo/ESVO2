@@ -2,15 +2,9 @@
 
 int main(int argc, char* argv[])
 {
-  ros::init(argc, argv, "image_representation");
-
-  ros::NodeHandle nh;
-  ros::NodeHandle nh_private("~");
-
-  bool left = true;
-  image_representation::ImageRepresentation ts(nh, nh_private);
-
-  ros::spin();
-
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<image_representation::ImageRepresentation>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
   return 0;
 }
