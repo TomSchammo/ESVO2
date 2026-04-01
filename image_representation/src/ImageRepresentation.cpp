@@ -96,8 +96,8 @@ namespace image_representation
 
   void ImageRepresentation::GenerationLoop()
   {
-    ros::Rate r(generation_rate_hz_);
-    while (ros::ok())
+    rclcpp::Rate r(generation_rate_hz_);
+    while (rclcpp::ok())
     {
       sync_time_ = ros::Time::now();
       {

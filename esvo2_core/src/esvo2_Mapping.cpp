@@ -231,13 +231,13 @@ namespace esvo2_core
       std::promise<void> prom_mapping,
       std::future<void> future_reset)
   {
-    ros::Rate r(mapping_rate_hz_);
-    while (ros::ok())
+    rclcpp::Rate r(mapping_rate_hz_);
+    while (rclcpp::ok())
     {
       // reset mapping rate
       if (changed_frame_rate_)
       {
-        r = ros::Rate(mapping_rate_hz_);
+        r = rclcpp::Rate(mapping_rate_hz_);
         changed_frame_rate_ = false;
       }
 

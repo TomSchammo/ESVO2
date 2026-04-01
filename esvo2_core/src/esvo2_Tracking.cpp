@@ -98,8 +98,8 @@ esvo2_Tracking::~esvo2_Tracking()
 
 void esvo2_Tracking::TrackingLoop()
 {
-  ros::Rate r(tracking_rate_hz_);
-  while(ros::ok())
+  rclcpp::Rate r(tracking_rate_hz_);
+  while(rclcpp::ok())
   {
     // Keep Idling
     if(refPCMap_.size() < 1 || TS_history_.size() < 1)
