@@ -65,7 +65,7 @@ esvo2_Tracking::esvo2_Tracking(
   TS_negaTS_sync_.registerCallback(boost::bind(&esvo2_Tracking::timeSurface_NegaTS_Callback, this, _1, _2, _3, _4));
 
   tf_ = std::make_shared<tf::Transformer>(true, ros::Duration(100.0));
-  pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/esvo2_tracking/pose_pub", 1);
+  pose_pub_ = nh_.advertise<geometry_msgs::msg::PoseStamped>("/esvo2_tracking/pose_pub", 1);
   path_pub_ = nh_.advertise<nav_msgs::Path>("/esvo2_tracking/trajectory", 1);
   map_sub_ = nh_.subscribe("pointcloud", 0, &esvo2_Tracking::refMapCallback, this);// local map in the ref view.
   stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo2_Tracking::stampedPoseCallback, this);// for accessing the pose of the ref view.
@@ -352,7 +352,7 @@ void esvo2_Tracking::reset()
 
 
 /********************** Callback functions *****************************/
-void esvo2_Tracking::refImuCallback(const sensor_msgs::ImuPtr& msg)
+void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
 {
   std::lock_guard<std::mutex> lock(imu_mutex_);
   Eigen::Vector3d acc, gyr;
@@ -463,10 +463,10 @@ void esvo2_Tracking::clearEventQueue()
 
 void
 esvo2_Tracking::timeSurface_NegaTS_Callback(
-  const sensor_msgs::ImageConstPtr &time_surface_left,
-  const sensor_msgs::ImageConstPtr &time_surface_negative,
-  const sensor_msgs::ImageConstPtr &time_surface_dx,
-  const sensor_msgs::ImageConstPtr &time_surface_dy)
+  const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_left,
+  const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_negative,
+  const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_dx,
+  const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_dy)
 {
   
   cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_negative, cv_ptr_dx, cv_ptr_dy;
@@ -496,7 +496,7 @@ esvo2_Tracking::timeSurface_NegaTS_Callback(
   }
 }
 
-void esvo2_Tracking::stampedPoseCallback(const geometry_msgs::PoseStampedConstPtr &msg)
+void esvo2_Tracking::stampedPoseCallback(const geometry_msgs::msg::PoseStampedConstPtr &msg)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
   // add pose to tf
@@ -540,7 +540,7 @@ esvo2_Tracking::getPoseAt(
 /************ publish results *******************/
 void esvo2_Tracking::publishPose(const ros::Time &t, Transformation &tr)
 {
-  geometry_msgs::PoseStampedPtr ps_ptr(new geometry_msgs::PoseStamped());
+  geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
 
   ps_ptr->header.stamp = t;
   ps_ptr->header.frame_id = world_frame_id_;
@@ -576,7 +576,7 @@ void esvo2_Tracking::publishPose(const ros::Time &t, Transformation &tr)
 
 void esvo2_Tracking::publishPath(const ros::Time& t, Transformation& tr)
 {
-  geometry_msgs::PoseStampedPtr ps_ptr(new geometry_msgs::PoseStamped());
+  geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
   
   ps_ptr->header.stamp = t;
   ps_ptr->header.frame_id = world_frame_id_;
@@ -650,7 +650,7 @@ void esvo2_Tracking::renameOldTraj()
   }
 }
 
-void esvo2_Tracking::groundTruthCallback(const geometry_msgs::PoseStampedConstPtr &msg)
+void esvo2_Tracking::groundTruthCallback(const geometry_msgs::msg::PoseStampedConstPtr &msg)
 {
   std::ofstream  f;
   f.open("/home/njk/output/ESVO2/stamped_groundtruth.txt", std::ofstream::app);

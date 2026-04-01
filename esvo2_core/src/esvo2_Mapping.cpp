@@ -759,7 +759,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::stampedPoseCallback(
-      const geometry_msgs::PoseStampedConstPtr &ps_msg)
+      const geometry_msgs::msg::PoseStampedConstPtr &ps_msg)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
     // To check inconsistent timestamps and reset.
@@ -871,12 +871,12 @@ namespace esvo2_core
   
 
   void esvo2_Mapping::timeSurfaceCallback(
-      const sensor_msgs::ImageConstPtr &time_surface_left,
-      const sensor_msgs::ImageConstPtr &time_surface_right,
-      const sensor_msgs::ImageConstPtr &AA_map,
-      const sensor_msgs::ImageConstPtr &time_surface_negative,
-      const sensor_msgs::ImageConstPtr &time_surface_negative_dx,
-      const sensor_msgs::ImageConstPtr &time_surface_negative_dy)
+      const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_left,
+      const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_right,
+      const sensor_msgs::msg::Image::ConstSharedPtr &AA_map,
+      const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_negative,
+      const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_negative_dx,
+      const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_negative_dy)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
     // check time-stamp inconsistency
@@ -924,7 +924,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::AACallback(
-      const sensor_msgs::ImageConstPtr &AA_left)
+      const sensor_msgs::msg::Image::ConstSharedPtr &AA_left)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
     // check timestamp consistency
@@ -1022,7 +1022,7 @@ namespace esvo2_core
     clearEventQueue(events_left_);
   }
 
-  void esvo2_Mapping::refImuCallback(const sensor_msgs::ImuPtr &msg)
+  void esvo2_Mapping::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr &msg)
   {
     double t = msg->header.stamp.toSec();
     double dx = msg->linear_acceleration.x;
