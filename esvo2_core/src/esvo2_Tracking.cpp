@@ -3,6 +3,8 @@
 #include <esvo2_core/tools/params_helper.h>
 #include <minkindr_conversions/kindr_tf.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2/exceptions.h>
+#include <tf2/LinearMath/Transform.h>
 #include <sys/stat.h>
 
 //#define ESVO2_CORE_TRACKING_DEBUG
@@ -525,44 +527,58 @@ esvo2_Tracking::timeSurface_NegaTS_Callback(
   }
 }
 
-void esvo2_Tracking::stampedPoseCallback(const geometry_msgs::msg::PoseStampedConstPtr &msg)
+void esvo2_Tracking::stampedPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
-  // add pose to tf
-  tf::Transform tf(
-    tf::Quaternion(
-      msg->pose.orientation.x,
-      msg->pose.orientation.y,
-      msg->pose.orientation.z,
-      msg->pose.orientation.w),
-    tf::Vector3(
-      msg->pose.position.x,
-      msg->pose.position.y,
-      msg->pose.position.z));
-  tf::StampedTransform st(tf, msg->header.stamp, msg->header.frame_id, dvs_frame_id_.c_str());
-  tf_->setTransform(st);
-  // broadcast the tf such that the nav_path messages can find the valid fixed frame "map".
-  static tf::TransformBroadcaster br;
-  br.sendTransform(st);
+
+  // Create transform and add to buffer
+  geometry_msgs::msg::TransformStamped transform_stamped;
+  transform_stamped.header = msg->header;
+  transform_stamped.child_frame_id = dvs_frame_id_;
+  transform_stamped.transform.translation.x = msg->pose.position.x;
+  transform_stamped.transform.translation.y = msg->pose.position.y;
+  transform_stamped.transform.translation.z = msg->pose.position.z;
+  transform_stamped.transform.rotation = msg->pose.orientation;
+
+  // Use a static transform broadcaster to publish the transform
+  static tf2_ros::TransformBroadcaster br(this);
+  br.sendTransform(transform_stamped);
+
+  // Also set it in the buffer for lookups
+  tf_buffer_->setTransform(transform_stamped, "esvo2_tracking", false);
 }
 
 bool
 esvo2_Tracking::getPoseAt(
-  const ros::Time &t, esvo2_core::Transformation &Tr, const std::string &source_frame)
+  const rclcpp::Time &t, esvo2_core::Transformation &Tr, const std::string &source_frame)
 {
-  std::string* err_msg = new std::string();
-  if(!tf_->canTransform(world_frame_id_, source_frame, t, err_msg))
+  try
   {
-    LOG(WARNING) << t.toNSec() << " : " << *err_msg;
-    delete err_msg;
-    return false;
-  }
-  else
-  {
-    tf::StampedTransform st;
-    tf_->lookupTransform(world_frame_id_, source_frame, t, st);
-    tf::transformTFToKindr(st, &Tr);
+    if(!tf_buffer_->canTransform(world_frame_id_, source_frame, t, rclcpp::Duration::from_seconds(0.0)))
+    {
+      LOG(WARNING) << t.nanoseconds() << " : Cannot transform";
+      return false;
+    }
+    geometry_msgs::msg::TransformStamped transform_stamped =
+      tf_buffer_->lookupTransform(world_frame_id_, source_frame, t);
+    // Convert geometry_msgs::msg::TransformStamped to tf2::Transform
+    tf2::Transform tf2_transform;
+    tf2_transform.setOrigin(tf2::Vector3(
+        transform_stamped.transform.translation.x,
+        transform_stamped.transform.translation.y,
+        transform_stamped.transform.translation.z));
+    tf2_transform.setRotation(tf2::Quaternion(
+        transform_stamped.transform.rotation.x,
+        transform_stamped.transform.rotation.y,
+        transform_stamped.transform.rotation.z,
+        transform_stamped.transform.rotation.w));
+    tf::transformTFToKindr(tf2_transform, &Tr);
     return true;
+  }
+  catch (tf2::TransformException &ex)
+  {
+    LOG(WARNING) << t.nanoseconds() << " : " << ex.what();
+    return false;
   }
 }
 

@@ -4,6 +4,8 @@
 #include <esvo2_core/factor/pose_local_parameterization.h>
 #include <esvo2_core/factor/utility.h>
 #include <minkindr_conversions/kindr_tf.h>
+#include <tf2/exceptions.h>
+#include <tf2/LinearMath/Transform.h>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
@@ -772,62 +774,74 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::stampedPoseCallback(
-      const geometry_msgs::msg::PoseStampedConstPtr &ps_msg)
+      const geometry_msgs::msg::PoseStamped::SharedPtr ps_msg)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
     // To check inconsistent timestamps and reset.
     static constexpr double max_time_diff_before_reset_s = 0.5;
-    const ros::Time stamp_first_event = ps_msg->header.stamp;
-    std::string *err_tf = new std::string();
-    delete err_tf;
+    const rclcpp::Time stamp_first_event = ps_msg->header.stamp;
 
-    if (tf_lastest_common_time_.toSec() != 0)
+    if (tf_lastest_common_time_.nanoseconds() != 0)
     {
-      const double dt = stamp_first_event.toSec() - tf_lastest_common_time_.toSec();
+      const double dt = stamp_first_event.seconds() - tf_lastest_common_time_.seconds();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
         RCLCPP_INFO(this->get_logger(), "Inconsistent event timestamps detected <stampedPoseCallback> (new: %f, old %f), resetting.",
-                 stamp_first_event.toSec(), tf_lastest_common_time_.toSec());
+                 stamp_first_event.seconds(), tf_lastest_common_time_.seconds());
         reset();
       }
     }
 
-    // add pose to tf
-    tf::Transform tf(
-        tf::Quaternion(
-            ps_msg->pose.orientation.x,
-            ps_msg->pose.orientation.y,
-            ps_msg->pose.orientation.z,
-            ps_msg->pose.orientation.w),
-        tf::Vector3(
-            ps_msg->pose.position.x,
-            ps_msg->pose.position.y,
-            ps_msg->pose.position.z));
-    tf::StampedTransform st(tf, ps_msg->header.stamp, ps_msg->header.frame_id, dvs_frame_id_.c_str());
-    tf_->setTransform(st);
+    // Create transform and add to buffer
+    geometry_msgs::msg::TransformStamped transform_stamped;
+    transform_stamped.header = ps_msg->header;
+    transform_stamped.child_frame_id = dvs_frame_id_;
+    transform_stamped.transform.translation.x = ps_msg->pose.position.x;
+    transform_stamped.transform.translation.y = ps_msg->pose.position.y;
+    transform_stamped.transform.translation.z = ps_msg->pose.position.z;
+    transform_stamped.transform.rotation = ps_msg->pose.orientation;
+
+    // Set it in the buffer for lookups
+    tf_buffer_->setTransform(transform_stamped, "esvo2_mapping", false);
   }
 
   // return the pose of the left event cam at time t.
   bool esvo2_Mapping::getPoseAt(
-      const ros::Time &t,
+      const rclcpp::Time &t,
       esvo2_core::Transformation &Tr, // T_world_virtual
       const std::string &source_frame)
   {
-    std::string *err_msg = new std::string();
-    if (!tf_->canTransform(world_frame_id_, source_frame, t, err_msg))
+    try
+    {
+      if (!tf_buffer_->canTransform(world_frame_id_, source_frame, t, rclcpp::Duration::from_seconds(0.0)))
+      {
+#ifdef ESVO2_CORE_MAPPING_LOG
+        LOG(WARNING) << t.nanoseconds() << " : Cannot transform";
+#endif
+        return false;
+      }
+      geometry_msgs::msg::TransformStamped transform_stamped =
+        tf_buffer_->lookupTransform(world_frame_id_, source_frame, t);
+      // Convert geometry_msgs::msg::TransformStamped to tf2::Transform
+      tf2::Transform tf2_transform;
+      tf2_transform.setOrigin(tf2::Vector3(
+          transform_stamped.transform.translation.x,
+          transform_stamped.transform.translation.y,
+          transform_stamped.transform.translation.z));
+      tf2_transform.setRotation(tf2::Quaternion(
+          transform_stamped.transform.rotation.x,
+          transform_stamped.transform.rotation.y,
+          transform_stamped.transform.rotation.z,
+          transform_stamped.transform.rotation.w));
+      tf::transformTFToKindr(tf2_transform, &Tr);
+      return true;
+    }
+    catch (tf2::TransformException &ex)
     {
 #ifdef ESVO2_CORE_MAPPING_LOG
-      LOG(WARNING) << t.toNSec() << " : " << *err_msg;
+      LOG(WARNING) << t.nanoseconds() << " : " << ex.what();
 #endif
-      delete err_msg;
       return false;
-    }
-    else
-    {
-      tf::StampedTransform st;
-      tf_->lookupTransform(world_frame_id_, source_frame, t, st);
-      tf::transformTFToKindr(st, &Tr);
-      return true;
     }
   }
 
@@ -1066,7 +1080,7 @@ namespace esvo2_core
     events_left_.clear();
     events_right_.clear();
     TS_history_.clear();
-    tf_->clear();
+    tf_buffer_->clear();
     pc_color_->clear();
     pc_filtered_->clear();
     pc_near_->clear();
