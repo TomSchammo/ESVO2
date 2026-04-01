@@ -108,7 +108,7 @@ namespace image_representation
     }
   }
 
-  void ImageRepresentation::AA_thread(std::vector<dvs_msgs::Event>::iterator &ptr_e, int distance, double external_t)
+  void ImageRepresentation::AA_thread(std::vector<dvs_msgs::msg::Event>::iterator &ptr_e, int distance, double external_t)
   {
     ros::Time external_sync_time(external_t);
 
@@ -128,7 +128,7 @@ namespace image_representation
     // calculate the final activity by all events, also can be estimated by eq. 3 in the paper
     for (auto it = vEvents_.begin(); it != ptr_e; it++)
     {
-      dvs_msgs::Event e = *it;
+      dvs_msgs::msg::Event e = *it;
       int y = e.y / (int)ceil((double)sensor_size_.height / (double)y_patches_);
       int x = e.x / (int)ceil((double)sensor_size_.width / (double)x_patches_);
       beta[y * x_patches_ + x] = 1 / (1 + final_activity[y * x_patches_ + x] * abs(e.ts.toSec() - last_event_time[y * x_patches_ + x])); // eq. 2
@@ -145,7 +145,7 @@ namespace image_representation
     std::fill(last_event_time.begin(), last_event_time.end(), 0);
     for (auto it = ptr_e; it != vEvents_.begin(); it--) // traverse events in reverse to accumulate the latest events
     {
-      dvs_msgs::Event e = *it;
+      dvs_msgs::msg::Event e = *it;
       int y = e.y / (int)ceil((double)sensor_size_.height / (double)y_patches_);
       int x = e.x / (int)ceil((double)sensor_size_.width / (double)x_patches_);
       if (flag[y * x_patches_ + x] != true)
@@ -210,7 +210,7 @@ namespace image_representation
       if (vEvents_.size() == 0)
         return;
       double external_t = external_sync_time.toSec();
-      std::vector<dvs_msgs::Event>::iterator ptr_e = EventVector_lower_bound(vEvents_, external_t);
+      std::vector<dvs_msgs::msg::Event>::iterator ptr_e = EventVector_lower_bound(vEvents_, external_t);
       int distance = std::distance(vEvents_.begin(), ptr_e);
 
       if (is_left_)   // generate AA and TS in parallel, just for left camera
@@ -224,7 +224,7 @@ namespace image_representation
         // double step = static_cast<double>(distance) / 90000.0;
 
         double step = 1;
-        std::vector<dvs_msgs::Event>::iterator it = vEvents_.begin();
+        std::vector<dvs_msgs::msg::Event>::iterator it = vEvents_.begin();
 
         // generate TS map
         for (int i = 0; i < distance; i++)
@@ -232,7 +232,7 @@ namespace image_representation
           int index = static_cast<int>(i * step);
           if (index > distance - 2)
             break;
-          dvs_msgs::Event e = *(it + index);
+          dvs_msgs::msg::Event e = *(it + index);
           TS_temp_map(e.y, e.x) = e.ts.toSec() / decay_sec_;
         }
 
@@ -293,13 +293,13 @@ namespace image_representation
         // double step = static_cast<double>(distance) / 90000.0;
         // if (step < 1)
         double step = 1;
-        std::vector<dvs_msgs::Event>::iterator it = vEvents_.begin();
+        std::vector<dvs_msgs::msg::Event>::iterator it = vEvents_.begin();
         for (int i = 0; i < distance; i++)
         {
           int index = static_cast<int>(i * step);
           if (index > distance - 2)
             break;
-          dvs_msgs::Event e = *(it + index);
+          dvs_msgs::msg::Event e = *(it + index);
           TS_temp_map(e.y, e.x) = e.ts.toSec() / decay_sec_;
         }
         cv::eigen2cv(TS_temp_map, representation_TS_);
@@ -324,7 +324,7 @@ namespace image_representation
     }
   }
 
-  void ImageRepresentation::clearEvents(int distance, std::vector<dvs_msgs::Event>::iterator ptr_e)
+  void ImageRepresentation::clearEvents(int distance, std::vector<dvs_msgs::msg::Event>::iterator ptr_e)
   {
     if (vEvents_.size() > distance + 2)
       vEvents_.erase(vEvents_.begin(), ptr_e);
@@ -332,14 +332,14 @@ namespace image_representation
       vEvents_.clear();
   }
 
-  void ImageRepresentation::eventsCallback(const dvs_msgs::EventArray::ConstPtr &msg)
+  void ImageRepresentation::eventsCallback(const dvs_msgs::msg::EventArray::ConstPtr &msg)
   {
     TicToc t;
     std::lock_guard<std::mutex> lock(data_mutex_);
     double t1 = t.toc();
     if (!bSensorInitialized_)
       init(msg->width, msg->height);
-    for (const dvs_msgs::Event &e : msg->events)
+    for (const dvs_msgs::msg::Event &e : msg->events)
     {
       if (e.x > sensor_size_.width || e.y > sensor_size_.height)
         continue;

@@ -13,7 +13,7 @@ struct EventMessageEditor
     std::string & messageTopic)
     :bFirstMessage_(true)
   {
-    eArray_ = dvs_msgs::EventArray();
+    eArray_ = dvs_msgs::msg::EventArray();
     duration_threshold_ = 1 / frequency;
     message_topic_ = messageTopic;
   }
@@ -33,7 +33,7 @@ struct EventMessageEditor
   }
 
   void insertEvent(
-    dvs_msgs::Event & e,
+    dvs_msgs::msg::Event & e,
     rosbag::Bag* bag)
   {
     if(bFirstMessage_)
@@ -51,7 +51,7 @@ struct EventMessageEditor
   }
 
   // variables
-  dvs_msgs::EventArray eArray_;
+  dvs_msgs::msg::EventArray eArray_;
   double duration_threshold_;
   ros::Time start_time_, end_time_;
   bool bFirstMessage_;
@@ -120,13 +120,13 @@ int main(int argc, char* argv[])
     // topic loop
     for(rosbag::MessageInstance const m: view)
     {
-      dvs_msgs::EventArray::ConstPtr msg = m.instantiate<dvs_msgs::EventArray>();
+      dvs_msgs::msg::EventArray::ConstPtr msg = m.instantiate<dvs_msgs::msg::EventArray>();
       eArrayEditor.resetArraySize(msg->width, msg->height);
       // message loop
-      for(dvs_msgs::Event e : msg->events)
+      for(dvs_msgs::msg::Event e : msg->events)
       {
         nums++;
-        eArrayEditor.insertEvent(const_cast<dvs_msgs::Event&>(e), &bag_dst);
+        eArrayEditor.insertEvent(const_cast<dvs_msgs::msg::Event&>(e), &bag_dst);
       }
     }
   }

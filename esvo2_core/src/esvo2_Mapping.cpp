@@ -182,7 +182,7 @@ namespace esvo2_core
     if (bpoints_from_AA_)
       AA_frequency_sub_ = nh_.subscribe<sensor_msgs::Image>("AA_left", 0, &esvo2_Mapping::AACallback, this); 
     else
-      events_left_sub_ = nh_.subscribe<dvs_msgs::EventArray>("events_left", 0, boost::bind(&esvo2_Mapping::eventsCallback, this, _1, boost::ref(events_left_)));
+      events_left_sub_ = nh_.subscribe<dvs_msgs::msg::EventArray>("events_left", 0, boost::bind(&esvo2_Mapping::eventsCallback, this, _1, boost::ref(events_left_)));
 
     // IMU
     if (bUSE_IMU_)
@@ -819,7 +819,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::eventsCallback(
-      const dvs_msgs::EventArray::ConstPtr &msg,
+      const dvs_msgs::msg::EventArray::ConstPtr &msg,
       EventQueue &EQ)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
@@ -840,7 +840,7 @@ namespace esvo2_core
     }
 
     // add new ones and remove old ones
-    for (const dvs_msgs::Event &e : msg->events)
+    for (const dvs_msgs::msg::Event &e : msg->events)
     {
       Eigen::Vector2d x;
       x << e.x, e.y;
@@ -987,7 +987,7 @@ namespace esvo2_core
       ratios[i] = (double)num_of_roi[i] / (double)num_of_resultImg * 0.75;
       for (int j = 0; j < std::min((size_t)(PROCESS_EVENT_NUM_AA_ * ratios[i]), roi_events[i].size() / 2); j++)
       {
-        dvs_msgs::Event e;
+        dvs_msgs::msg::Event e;
         e.x = roi_events[i][j].second.x;
         e.y = roi_events[i][j].second.y;
         e.ts = ros::Time(AA_left->header.stamp.toSec() + 0.0000001);
@@ -1006,7 +1006,7 @@ namespace esvo2_core
         persent_of_point = std::min(((double)empty_num) / x_patches_ * y_patches_, 1.);
         for (int j = num_processed[i]; j < std::min((size_t)(PROCESS_EVENT_NUM_AA_ * ratios[i]) + empty_num / (x_patches_ * y_patches_), roi_events[i].size() / 2); j++)
         {
-          dvs_msgs::Event e;
+          dvs_msgs::msg::Event e;
           e.x = roi_events[i][j].second.x;
           e.y = roi_events[i][j].second.y;
           e.ts = ros::Time(AA_left->header.stamp.toSec() + 0.0000001);
@@ -1017,7 +1017,7 @@ namespace esvo2_core
         }
       }
     }
-    for (const dvs_msgs::Event &e : EQ_tmp)
+    for (const dvs_msgs::msg::Event &e : EQ_tmp)
       events_left_.push_back(e);
     clearEventQueue(events_left_);
   }
@@ -1227,7 +1227,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::createEdgeMask(
-      std::vector<dvs_msgs::Event *> &vEventsPtr,
+      std::vector<dvs_msgs::msg::Event *> &vEventsPtr,
       PerspectiveCamera::Ptr &camPtr,
       cv::Mat &edgeMap,
       std::vector<std::pair<size_t, size_t>> &vEdgeletCoordinates,
@@ -1274,7 +1274,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::createDenoisingMask(
-      std::vector<dvs_msgs::Event *> &vAllEventsPtr,
+      std::vector<dvs_msgs::msg::Event *> &vAllEventsPtr,
       cv::Mat &mask,
       size_t row, size_t col)
   {
@@ -1284,8 +1284,8 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::extractDenoisedEvents(
-      std::vector<dvs_msgs::Event *> &vCloseEventsPtr,
-      std::vector<dvs_msgs::Event *> &vEdgeEventsPtr,
+      std::vector<dvs_msgs::msg::Event *> &vCloseEventsPtr,
+      std::vector<dvs_msgs::msg::Event *> &vEdgeEventsPtr,
       cv::Mat &mask,
       size_t maxNum)
   {
@@ -1303,7 +1303,7 @@ namespace esvo2_core
     }
   }
 
-  void esvo2_Mapping::getReprojection(std::vector<EventMatchPair> &vEMP, Eigen::Matrix4d T_last_now, std::vector<dvs_msgs::Event *> &vDenoisedEventsPtr_left_dy)
+  void esvo2_Mapping::getReprojection(std::vector<EventMatchPair> &vEMP, Eigen::Matrix4d T_last_now, std::vector<dvs_msgs::msg::Event *> &vDenoisedEventsPtr_left_dy)
   {
     for (auto event : vDenoisedEventsPtr_left_dy)
     {
