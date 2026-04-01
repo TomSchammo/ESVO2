@@ -114,7 +114,7 @@ namespace image_representation
     rclcpp::Rate r(generation_rate_hz_);
     while (rclcpp::ok())
     {
-      sync_time_ = ros::Time::now();
+      sync_time_ = this->now();
       {
         createImageRepresentationAtTime(sync_time_);
       }
@@ -125,7 +125,7 @@ namespace image_representation
 
   void ImageRepresentation::AA_thread(std::vector<dvs_msgs::msg::Event>::iterator &ptr_e, int distance, double external_t)
   {
-    ros::Time external_sync_time(external_t);
+    rclcpp::Time external_sync_time(static_cast<int64_t>(external_t * 1e9));
 
     representation_AA_ = cv::Mat::zeros(sensor_size_, CV_8U);   //for temporal stereo matching
     cv::Mat AA_frequency = cv::Mat::zeros(sensor_size_, CV_8U);   //for point sampling
@@ -146,11 +146,11 @@ namespace image_representation
       dvs_msgs::msg::Event e = *it;
       int y = e.y / (int)ceil((double)sensor_size_.height / (double)y_patches_);
       int x = e.x / (int)ceil((double)sensor_size_.width / (double)x_patches_);
-      beta[y * x_patches_ + x] = 1 / (1 + final_activity[y * x_patches_ + x] * abs(e.ts.toSec() - last_event_time[y * x_patches_ + x])); // eq. 2
+      beta[y * x_patches_ + x] = 1 / (1 + final_activity[y * x_patches_ + x] * abs(rclcpp::Time(e.ts).seconds() - last_event_time[y * x_patches_ + x])); // eq. 2
       if (y * x_patches_ + x >= x_patches_ * y_patches_)
         exit(-1);
       final_activity[y * x_patches_ + x] = beta[y * x_patches_ + x] * final_activity[y * x_patches_ + x] + 1; // eq. 1
-      last_event_time[y * x_patches_ + x] = e.ts.toSec();
+      last_event_time[y * x_patches_ + x] = rclcpp::Time(e.ts).seconds();
       // nums_temp[y * x_patches_ + x]++;
     }
     // for(int i = 0; i < x_patches_ * y_patches_; i++)
@@ -165,9 +165,9 @@ namespace image_representation
       int x = e.x / (int)ceil((double)sensor_size_.width / (double)x_patches_);
       if (flag[y * x_patches_ + x] != true)
         continue;
-      beta[y * x_patches_ + x] = 1 / (1 + event_activity[y * x_patches_ + x] * abs(e.ts.toSec() - last_event_time[y * x_patches_ + x])); // eq. 2
+      beta[y * x_patches_ + x] = 1 / (1 + event_activity[y * x_patches_ + x] * abs(rclcpp::Time(e.ts).seconds() - last_event_time[y * x_patches_ + x])); // eq. 2
       event_activity[y * x_patches_ + x] = beta[y * x_patches_ + x] * event_activity[y * x_patches_ + x] + 1;                            // eq. 1
-      last_event_time[y * x_patches_ + x] = e.ts.toSec();
+      last_event_time[y * x_patches_ + x] = rclcpp::Time(e.ts).seconds();
       AA_frequency.at<uchar>(e.y, e.x)++;
       num[y * x_patches_ + x]++;
       if (AA_frequency.at<uchar>(e.y, e.x) >= 1)
@@ -205,7 +205,7 @@ namespace image_representation
     image_representation_pub_AA_mat_.publish(cv_AA_mat.toImageMsg());
   }
 
-  void ImageRepresentation::createImageRepresentationAtTime(const ros::Time &external_sync_time)
+  void ImageRepresentation::createImageRepresentationAtTime(const rclcpp::Time &external_sync_time)
   {
     if (!bcreat_)
       return;
@@ -224,7 +224,7 @@ namespace image_representation
     {
       if (vEvents_.size() == 0)
         return;
-      double external_t = external_sync_time.toSec();
+      double external_t = external_sync_time.seconds();
       std::vector<dvs_msgs::msg::Event>::iterator ptr_e = EventVector_lower_bound(vEvents_, external_t);
       int distance = std::distance(vEvents_.begin(), ptr_e);
 
@@ -248,7 +248,7 @@ namespace image_representation
           if (index > distance - 2)
             break;
           dvs_msgs::msg::Event e = *(it + index);
-          TS_temp_map(e.y, e.x) = e.ts.toSec() / decay_sec_;
+          TS_temp_map(e.y, e.x) = rclcpp::Time(e.ts).seconds() / decay_sec_;
         }
 
         cv::eigen2cv(TS_temp_map, representation_TS_);
@@ -283,10 +283,10 @@ namespace image_representation
         cv_dx_image.encoding = sensor_msgs::image_encodings::TYPE_16SC1;
         cv_dy_image.encoding = sensor_msgs::image_encodings::TYPE_16SC1;
 
-        cv_TS_image.header.stamp = ros::Time(external_t);
-        cv_negative_TS_image.header.stamp = ros::Time(external_t);
-        cv_dx_image.header.stamp = ros::Time(external_t);
-        cv_dy_image.header.stamp = ros::Time(external_t);
+        cv_TS_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
+        cv_negative_TS_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
+        cv_dx_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
+        cv_dy_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
 
         cv_TS_image.image = TS_img.clone();
         cv_negative_TS_image.image = negative_TS_img.clone();
@@ -315,7 +315,7 @@ namespace image_representation
           if (index > distance - 2)
             break;
           dvs_msgs::msg::Event e = *(it + index);
-          TS_temp_map(e.y, e.x) = e.ts.toSec() / decay_sec_;
+          TS_temp_map(e.y, e.x) = rclcpp::Time(e.ts).seconds() / decay_sec_;
         }
         cv::eigen2cv(TS_temp_map, representation_TS_);
 
@@ -330,7 +330,7 @@ namespace image_representation
 
         cv_bridge::CvImage cv_TS_image;
         cv_TS_image.encoding = "mono8";
-        cv_TS_image.header.stamp = ros::Time(external_t);
+        cv_TS_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
         cv_TS_image.image = TS_img.clone();
         image_representation_pub_TS_.publish(cv_TS_image.toImageMsg());
       }
@@ -361,7 +361,7 @@ namespace image_representation
       vEvents_.push_back(e);
 
       int i = vEvents_.size() - 2;
-      while (i >= 0 && vEvents_[i].ts > e.ts)
+      while (i >= 0 && rclcpp::Time(vEvents_[i].ts).nanoseconds() > rclcpp::Time(e.ts).nanoseconds())
       {
         vEvents_[i + 1] = vEvents_[i];
         i--;
@@ -386,8 +386,8 @@ namespace image_representation
   {
     cv::Sobel(negative_TS_img, cv_dx_image.image, CV_16SC1, 1, 0);
     cv::Sobel(negative_TS_img, cv_dy_image.image, CV_16SC1, 0, 1);
-    cv_dx_image.header.stamp = ros::Time(external_t);
-    cv_dy_image.header.stamp = ros::Time(external_t);
+    cv_dx_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
+    cv_dy_image.header.stamp = rclcpp::Time(static_cast<int64_t>(external_t * 1e9));
     dx_image_pub_.publish(cv_dx_image.toImageMsg());
     dy_image_pub_.publish(cv_dy_image.toImageMsg());
   }

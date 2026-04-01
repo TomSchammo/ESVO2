@@ -323,7 +323,7 @@ namespace esvo2_core
     }
   }
 
-  void esvo2_Mapping::MappingAtTime(const ros::Time &t)
+  void esvo2_Mapping::MappingAtTime(const rclcpp::Time &t)
   {
     TicToc tt_mapping;
     TicToc mapping_cost;    // record the time cost of each step
@@ -542,7 +542,7 @@ namespace esvo2_core
 #endif
   }
 
-  bool esvo2_Mapping::InitializationAtTime(const ros::Time &t)
+  bool esvo2_Mapping::InitializationAtTime(const rclcpp::Time &t)
   {
     // create a new depth frame
     DepthFrame::Ptr depthFramePtr_new = std::make_shared<DepthFrame>(
@@ -674,9 +674,9 @@ namespace esvo2_core
       return false;
 
     std::vector<pair<double, Eigen::Vector3d>> accVector, gyrVector;
-    double curTime = TS_obs_ptr_->first.toSec();
+    double curTime = TS_obs_ptr_->first.seconds();
     if (prevTime == 0)
-      prevTime = TS_obs_ptr_->first.toSec() - 0.5;
+      prevTime = TS_obs_ptr_->first.seconds() - 0.5;
     mBuf.lock();
     // get the IMU data by time interval
     getIMUInterval(prevTime, curTime, accVector, gyrVector);
@@ -703,16 +703,16 @@ namespace esvo2_core
     if (ESVO2_System_Status_ == "INITIALIZATION")
     {
       vEventsPtr_left_SGM_.clear();
-      ros::Time t_end, t_begin;
+      rclcpp::Time t_end, t_begin;
       if (bpoints_from_AA_)
       {
-        t_end = ros::Time(TS_obs_ptr_->first.toSec() + 0.005);
-        t_begin = ros::Time(TS_obs_ptr_->first.toSec() - 0.005);
+        t_end = TS_obs_ptr_->first + rclcpp::Duration::from_seconds(0.005);
+        t_begin = TS_obs_ptr_->first - rclcpp::Duration::from_seconds(0.005);
       }
       else
       {
         t_end = TS_obs_ptr_->first;
-        t_begin = ros::Time(std::max(0.0, t_end.toSec() - 10 * BM_half_slice_thickness_));
+        t_begin = t_end - rclcpp::Duration::from_seconds(std::min(t_end.seconds(), 10 * BM_half_slice_thickness_));
       }
       auto ev_end_it = tools::EventBuffer_lower_bound(events_left_, t_end);
       auto ev_begin_it = tools::EventBuffer_lower_bound(events_left_, t_begin);
@@ -733,16 +733,16 @@ namespace esvo2_core
       vCloseEventsPtr_left_.clear(); // Will be denoised using the mask above.
 
       // load allEvent
-      ros::Time t_end, t_begin;
+      rclcpp::Time t_end, t_begin;
       if (bpoints_from_AA_)
       {
-        t_end = ros::Time(TS_obs_ptr_->first.toSec() + 0.005);
-        t_begin = ros::Time(TS_obs_ptr_->first.toSec() - 0.005);
+        t_end = TS_obs_ptr_->first + rclcpp::Duration::from_seconds(0.005);
+        t_begin = TS_obs_ptr_->first - rclcpp::Duration::from_seconds(0.005);
       }
       else
       {
         t_end = TS_obs_ptr_->first;
-        t_begin = ros::Time(std::max(0.0, t_end.toSec() - 10 * BM_half_slice_thickness_));
+        t_begin = t_end - rclcpp::Duration::from_seconds(std::min(t_end.seconds(), 10 * BM_half_slice_thickness_));
       }
       auto ev_end_it = tools::EventBuffer_lower_bound(events_left_, t_end);
       auto ev_begin_it = tools::EventBuffer_lower_bound(events_left_, t_begin);
@@ -852,16 +852,16 @@ namespace esvo2_core
     std::lock_guard<std::mutex> lock(data_mutex_);
 
     static constexpr double max_time_diff_before_reset_s = 0.5;
-    const ros::Time stamp_first_event = msg->events[0].ts;
+    const rclcpp::Time stamp_first_event(msg->events[0].ts);
 
     // check timestamp consistency
     if (!msg->events.empty() && !EQ.empty())
     {
-      const double dt = stamp_first_event.toSec() - EQ.back().ts.toSec();
+      const double dt = stamp_first_event.seconds() - rclcpp::Time(EQ.back().ts).seconds();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
         RCLCPP_INFO(this->get_logger(), "Inconsistent event timestamps detected <eventCallback> (new: %f, old %f), resetting.",
-                 stamp_first_event.toSec(), events_left_.back().ts.toSec());
+                 stamp_first_event.seconds(), rclcpp::Time(events_left_.back().ts).seconds());
         reset();
       }
     }
@@ -875,7 +875,7 @@ namespace esvo2_core
         continue;
       EQ.push_back(e);
       int i = EQ.size() - 2;
-      while (i >= 0 && EQ[i].ts > e.ts) // we may have to sort the queue, just in case the raw event messages do not come in a chronological order.
+      while (i >= 0 && rclcpp::Time(EQ[i].ts).nanoseconds() > rclcpp::Time(e.ts).nanoseconds()) // we may have to sort the queue, just in case the raw event messages do not come in a chronological order.
       {
         EQ[i + 1] = EQ[i];
         i--;
@@ -910,12 +910,12 @@ namespace esvo2_core
     if (!TS_history_.empty())
     {
       static constexpr double max_time_diff_before_reset_s = 1;
-      const ros::Time stamp_last_image = TS_history_.rbegin()->first;
-      const double dt = time_surface_left->header.stamp.toSec() - stamp_last_image.toSec();
+      const rclcpp::Time stamp_last_image = TS_history_.rbegin()->first;
+      const double dt = rclcpp::Time(time_surface_left->header.stamp).seconds() - stamp_last_image.seconds();
       if (dt < 0 || std::fabs(dt) >= max_time_diff_before_reset_s)
       {
         RCLCPP_INFO(this->get_logger(), "Inconsistent frame timestamp detected <timeSurfaceCallback> (new: %f, old %f), resetting.",
-                 time_surface_left->header.stamp.toSec(), stamp_last_image.toSec());
+                 rclcpp::Time(time_surface_left->header.stamp).seconds(), stamp_last_image.seconds());
         reset();
       }
     }
@@ -935,7 +935,7 @@ namespace esvo2_core
       return;
     }
     // push back the new time surface map
-    ros::Time t_new_TS = time_surface_left->header.stamp;
+    rclcpp::Time t_new_TS = time_surface_left->header.stamp;
 
     // Made the gradient computation optional which is up to the jacobian choice.
     if (dpSolver_.getProblemType() == NUMERICAL || dpSolver_ln_.getProblemType() == NUMERICAL)
@@ -958,12 +958,12 @@ namespace esvo2_core
     if (!TS_history_.empty())
     {
       static constexpr double max_time_diff_before_reset_s = 1;
-      const ros::Time stamp_last_image = TS_history_.rbegin()->first;
-      const double dt = AA_left->header.stamp.toSec() - stamp_last_image.toSec();
+      const rclcpp::Time stamp_last_image = TS_history_.rbegin()->first;
+      const double dt = rclcpp::Time(AA_left->header.stamp).seconds() - stamp_last_image.seconds();
       if (std::fabs(dt) >= max_time_diff_before_reset_s)
       {
         RCLCPP_INFO(this->get_logger(), "Inconsistent frame timestamp detected <AACallback> (new: %f, old %f), resetting.",
-                 AA_left->header.stamp.toSec(), stamp_last_image.toSec());
+                 rclcpp::Time(AA_left->header.stamp).seconds(), stamp_last_image.seconds());
         reset();
       }
     }
@@ -1017,7 +1017,7 @@ namespace esvo2_core
         dvs_msgs::msg::Event e;
         e.x = roi_events[i][j].second.x;
         e.y = roi_events[i][j].second.y;
-        e.ts = ros::Time(AA_left->header.stamp.toSec() + 0.0000001);
+        e.ts = rclcpp::Time(AA_left->header.stamp) + rclcpp::Duration::from_seconds(0.0000001);
         EQ_tmp.push_back(e);
         drift_t++;
         AA.at<uchar>(e.y, e.x) = 255;
@@ -1036,7 +1036,7 @@ namespace esvo2_core
           dvs_msgs::msg::Event e;
           e.x = roi_events[i][j].second.x;
           e.y = roi_events[i][j].second.y;
-          e.ts = ros::Time(AA_left->header.stamp.toSec() + 0.0000001);
+          e.ts = rclcpp::Time(AA_left->header.stamp) + rclcpp::Duration::from_seconds(0.0000001);
           EQ_tmp.push_back(e);
           drift_t++;
           AA.at<uchar>(e.y, e.x) = 255;
@@ -1051,7 +1051,7 @@ namespace esvo2_core
 
   void esvo2_Mapping::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr &msg)
   {
-    double t = msg->header.stamp.toSec();
+    double t = rclcpp::Time(msg->header.stamp).seconds();
     double dx = msg->linear_acceleration.x;
     double dy = msg->linear_acceleration.y;
     double dz = msg->linear_acceleration.z;
@@ -1119,7 +1119,7 @@ namespace esvo2_core
   void esvo2_Mapping::publishMappingResults(
       DepthMap::Ptr depthMapPtr,
       Transformation tr,
-      ros::Time t)
+      rclcpp::Time t)
   {
     cv::Mat invDepthImage, stdVarImage, ageImage, costImage, eventImage, confidenceMap, invDepthImage_rel;
 
@@ -1151,7 +1151,7 @@ namespace esvo2_core
   void esvo2_Mapping::publishPointCloud(
       DepthMap::Ptr &depthMapPtr,
       Transformation &tr,
-      ros::Time &t)
+      rclcpp::Time &t)
   {
     sensor_msgs::PointCloud2::Ptr pc_to_publish(new sensor_msgs::PointCloud2);
     Eigen::Matrix<double, 4, 4> T_world_result = tr.getTransformationMatrix();
@@ -1214,7 +1214,7 @@ namespace esvo2_core
     // publish global pointcloud
     if (bVisualizeGlobalPC_)
     {
-      if (t.toSec() - t_last_pub_pc_ > visualizeGPC_interval_)
+      if (t.seconds() - t_last_pub_pc_ > visualizeGPC_interval_)
       {
         PointCloud::Ptr pc_filtered(new PointCloud());
         pcl::VoxelGrid<pcl::PointXYZ> sor;
@@ -1235,14 +1235,14 @@ namespace esvo2_core
         pcl::toROSMsg(*pc_global_, *pc_to_publish);
         pc_to_publish->header.stamp = t;
         gpc_pub_.publish(pc_to_publish);
-        t_last_pub_pc_ = t.toSec();
+        t_last_pub_pc_ = t.seconds();
       }
     }
   }
 
   void esvo2_Mapping::publishImage(
       const cv::Mat &image,
-      const ros::Time &t,
+      const rclcpp::Time &t,
       image_transport::Publisher &pub,
       std::string encoding)
   {

@@ -18,10 +18,10 @@ struct EventMessageEditor
     message_topic_ = messageTopic;
   }
 
-  void resetBuffer(ros::Time startTimeStamp)
+  void resetBuffer(rclcpp::Time startTimeStamp)
   {
     start_time_ = startTimeStamp;
-    end_time_ = ros::Time(start_time_.toSec() + duration_threshold_);
+    end_time_ = start_time_ + rclcpp::Duration::from_seconds(duration_threshold_);
     eArray_.events.clear();
     eArray_.header.stamp = end_time_;
   }
@@ -42,7 +42,7 @@ struct EventMessageEditor
       bFirstMessage_ = false;
     }
 
-    if(e.ts.toSec() >= end_time_.toSec())
+    if(rclcpp::Time(e.ts).seconds() >= end_time_.seconds())
     {
       bag->write(message_topic_.c_str(), eArray_.header.stamp, eArray_);
       resetBuffer(end_time_);
@@ -53,7 +53,7 @@ struct EventMessageEditor
   // variables
   dvs_msgs::msg::EventArray eArray_;
   double duration_threshold_;
-  ros::Time start_time_, end_time_;
+  rclcpp::Time start_time_, end_time_;
   bool bFirstMessage_;
   std::string message_topic_;
 };
@@ -96,8 +96,8 @@ int main(int argc, char* argv[])
     RCLCPP_INFO(this->get_logger(), argv[3]);
     RCLCPP_INFO(this->get_logger(), "***************************");
   }
-  ros::Time start_time;
-  ros::Time end_time;
+  rclcpp::Time start_time;
+  rclcpp::Time end_time;
 
   const double frequency = 1000;
   int nums = 0;
@@ -114,8 +114,9 @@ int main(int argc, char* argv[])
   {
     rosbag::View view(bag_src, rosbag::TopicQuery(topics[i]));
     EventMessageEditor eArrayEditor(frequency, topics_rename[i]);
-    start_time = ros::Time(view.getBeginTime().toSec());
-    end_time = ros::Time(view.getEndTime().toSec()+0.01);
+    // TODO getBeginTime is ros1?
+    start_time = rclcpp::Time(static_cast<int64_t>(view.getBeginTime().toSec() * 1e9));
+    end_time = rclcpp::Time(static_cast<int64_t>((view.getEndTime().toSec()+0.01) * 1e9));
 
     // topic loop
     for(rosbag::MessageInstance const m: view)
@@ -140,13 +141,13 @@ int main(int argc, char* argv[])
   for(rosbag::MessageInstance const m: view)
   {
     sensor_msgs::Imu::ConstPtr msg = m.instantiate<sensor_msgs::Imu>();
-    if(msg->header.stamp.toSec() < start_time.toSec() || msg->header.stamp.toSec() > end_time.toSec())
+    if(rclcpp::Time(msg->header.stamp).seconds() < start_time.seconds() || rclcpp::Time(msg->header.stamp).seconds() > end_time.seconds())
       continue;
     // the topic name in the output bag file
     bag_dst.write("/imu/data", msg->header.stamp, *msg);
   }
 
-  
+
   bag_dst.close();
   return 0;
 }

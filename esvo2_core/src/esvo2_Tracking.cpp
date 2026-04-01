@@ -151,11 +151,11 @@ void esvo2_Tracking::TrackingLoop()
     // Data Transfer (If mapping node had published refPC.)
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
-      if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
+      if(ref_.t_.seconds() < refPCMap_.rbegin()->first.seconds())// new reference map arrived
         refDataTransferring();
-      if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
+      if(cur_.t_.seconds() < TS_history_.rbegin()->first.seconds())// new observation arrived
       {
-        if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
+        if(ref_.t_.seconds() >= TS_history_.rbegin()->first.seconds())
         {
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
           exit(-1);
@@ -204,7 +204,7 @@ void esvo2_Tracking::TrackingLoop()
       if(bSaveTrajectory_)
       {
         // save results to listPose and listPoseGt
-        lTimestamp_.push_back(std::to_string(cur_.t_.toSec()));
+        lTimestamp_.push_back(std::to_string(cur_.t_.seconds()));
         lPose_.push_back(cur_.tr_.getTransformationMatrix());
       }
     }
@@ -250,7 +250,7 @@ esvo2_Tracking::refDataTransferring()
   {
     if(!getPoseAt(t, ref_.tr_, dvs_frame_id_))
     {
-      LOG(INFO) << "ESVO2_System_Status_: " << ESVO2_System_Status_ << ", ref_.t_: " << ref_.t_.toNSec();
+      LOG(INFO) << "ESVO2_System_Status_: " << ESVO2_System_Status_ << ", ref_.t_: " << ref_.t_.nanoseconds();
       LOG(INFO) << "Logic error ! There must be a pose for the given timestamp, because mapping has been finished.";
       // exit(-1);
       return false;
@@ -280,7 +280,7 @@ esvo2_Tracking::curDataTransferring()
   auto TS_it = TS_history_.rbegin();
 
   // TS_history may not be updated before the tracking loop excutes the data transfering
-  if(cur_.t_ == TS_it->first)
+  if(cur_.t_.nanoseconds() == TS_it->first.nanoseconds())
     return false;
   cur_.t_ = TS_it->first;
   cur_.pTsObs_ = &TS_it->second;
@@ -345,15 +345,15 @@ esvo2_Tracking::curDataTransferring()
 bool esvo2_Tracking::curImuTransferring()
 {
   auto TS_it = TS_history_.rbegin();
-  double cur_TS_time = TS_it->first.toSec();
-  double last_TS_time = (++TS_it)->first.toSec();
+  double cur_TS_time = TS_it->first.seconds();
+  double last_TS_time = (++TS_it)->first.seconds();
 
   if(bUseImu_)
   {
     imu_mutex_.lock();
-    if(initVsFlag && (refPCMap_.rbegin()->first.toSec() - imu_data_.t_v_last_mapping.first > 0.001))
-        imu_data_.update_v(refPCMap_.rbegin()->first.toSec(), last_TS_time);
-    imu_data_.getPose(last_TS_time, cur_TS_time, true, ref_.t_.toSec());
+    if(initVsFlag && (refPCMap_.rbegin()->first.seconds() - imu_data_.t_v_last_mapping.first > 0.001))
+        imu_data_.update_v(refPCMap_.rbegin()->first.seconds(), last_TS_time);
+    imu_data_.getPose(last_TS_time, cur_TS_time, true, ref_.t_.seconds());
     if(t_world_cur_ != Eigen::Vector3d::Zero() && last_t_world_cur_ != Eigen::Vector3d::Zero())
     {
       Eigen::Matrix3d R_w_c = T_world_cur_.block(0, 0, 3, 3);
@@ -398,21 +398,21 @@ void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
     gyr[2] = msg->angular_velocity.z;
     if(imu_data_.last_time == 0)
     {
-      imu_data_.begin_time = msg->header.stamp.toSec();
+      imu_data_.begin_time = rclcpp::Time(msg->header.stamp).seconds();
       imu_data_.push_back(0.001, acc, gyr);
       imu_data_.last_time = imu_data_.begin_time;
     }
     else
     {
-      double dt = msg->header.stamp.toSec() - imu_data_.last_time;
+      double dt = rclcpp::Time(msg->header.stamp).seconds() - imu_data_.last_time;
       if(dt < 0)
         return;
-      imu_data_.begin_time = msg->header.stamp.toSec();
+      imu_data_.begin_time = rclcpp::Time(msg->header.stamp).seconds();
       imu_data_.push_back(dt, acc, gyr);
     }
   }
   else{
-    double time = msg->header.stamp.toSec();
+    double time = rclcpp::Time(msg->header.stamp).seconds();
     double dt = time - imu_data_.last_time;
     if(dt < 0)
       return;
@@ -472,7 +472,7 @@ void esvo2_Tracking::eventsCallback(
   {
     events_left_.push_back(e);
     int i = events_left_.size() - 2;
-    while(i >= 0 && events_left_[i].ts > e.ts) // we may have to sort the queue, just in case the raw event messages do not come in a chronological order.
+    while(i >= 0 && rclcpp::Time(events_left_[i].ts).nanoseconds() > rclcpp::Time(e.ts).nanoseconds()) // we may have to sort the queue, just in case the raw event messages do not come in a chronological order.
     {
       events_left_[i+1] = events_left_[i];
       i--;
@@ -515,7 +515,7 @@ esvo2_Tracking::timeSurface_NegaTS_Callback(
   }
   std::lock_guard<std::mutex> lock(data_mutex_);
   // push back the most current TS.
-  ros::Time t_new_ts = time_surface_left->header.stamp;
+  rclcpp::Time t_new_ts = time_surface_left->header.stamp;
   TS_history_.emplace(t_new_ts, TimeSurfaceObservation(cv_ptr_left, cv_ptr_negative, cv_ptr_dx, cv_ptr_dy, TS_id_, false));
   TS_id_++;
 
@@ -583,7 +583,7 @@ esvo2_Tracking::getPoseAt(
 }
 
 /************ publish results *******************/
-void esvo2_Tracking::publishPose(const ros::Time &t, Transformation &tr)
+void esvo2_Tracking::publishPose(const rclcpp::Time &t, Transformation &tr)
 {
   geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
 
@@ -619,7 +619,7 @@ void esvo2_Tracking::publishPose(const ros::Time &t, Transformation &tr)
   }
 }
 
-void esvo2_Tracking::publishPath(const ros::Time& t, Transformation& tr)
+void esvo2_Tracking::publishPath(const rclcpp::Time& t, Transformation& tr)
 {
   geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
   
@@ -702,7 +702,7 @@ void esvo2_Tracking::groundTruthCallback(const geometry_msgs::msg::PoseStampedCo
   f << std::fixed;
   f.setf(std::ios::fixed, std::ios::floatfield);
   f.precision(9);
-  f << msg->header.stamp.toSec() << " ";
+  f << rclcpp::Time(msg->header.stamp).seconds() << " ";
   f.precision(5);
   f << msg->pose.position.x << " "
   << msg->pose.position.y << " "

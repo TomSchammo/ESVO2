@@ -57,7 +57,7 @@ namespace esvo2_core
       // add parameter block
       for (int i = 0; i < WINDOW_SIZE + 1; i++)
       {
-        ros::Time tt = (*pDepthPoints_)[dqvDepthPoints_size - WINDOW_SIZE - 1 + i].timestamp_;
+        rclcpp::Time tt = (*pDepthPoints_)[dqvDepthPoints_size - WINDOW_SIZE - 1 + i].timestamp_;
         auto ts_obs = (*pTS_history_).find(tt);
         // convert vector to double for ceres
         vector2Double(ts_obs, last_obs, para_Pose, para_SpeedBias, i);
@@ -124,7 +124,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
 
       // Check if the solver converged
       if (initVsFlag && summary.termination_type == ceres::CONVERGENCE)
-        publishVBaBg((*pDepthPoints_)[(*pDepthPoints_).size() - 1].timestamp_.toSec());
+        publishVBaBg((*pDepthPoints_)[(*pDepthPoints_).size() - 1].timestamp_.seconds());
 
       // stereo + IMU initilization
       if (bUSE_IMU_)
@@ -257,7 +257,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
         T.block<3, 3>(0, 0) = Rs[i];
         T.block<3, 1>(0, 3) = Ps[i];
         Transformation Tr(T);
-        ros::Time tt = (*pDepthPoints_)[(*pDepthPoints_).size() - WINDOW_SIZE - 1 + i].timestamp_;
+        rclcpp::Time tt = (*pDepthPoints_)[(*pDepthPoints_).size() - WINDOW_SIZE - 1 + i].timestamp_;
         auto ts_obs = (*pTS_history_).find(tt);
         ts_obs->second.setTransformation(Tr);
       }
