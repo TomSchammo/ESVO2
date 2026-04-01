@@ -1,13 +1,24 @@
 cmake_minimum_required(VERSION 3.14)
 project(dv_ros_msgs VERSION 1.2.0)
 
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs
-                                        message_generation)
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-add_message_files(FILES Trigger.msg Event.msg EventArray.msg)
+find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
-generate_messages(DEPENDENCIES std_msgs sensor_msgs)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  msg/Event.msg
+  msg/EventArray.msg
+  msg/Trigger.msg
+  DEPENDENCIES builtin_interfaces std_msgs sensor_msgs
+)
 
-catkin_package(CATKIN_DEPENDS message_runtime roscpp std_msgs sensor_msgs)
+ament_export_dependencies(rosidl_default_runtime)
 
-include_directories(${catkin_INCLUDE_DIRS})
+ament_package()

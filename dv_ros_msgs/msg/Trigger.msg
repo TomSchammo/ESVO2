@@ -3,7 +3,7 @@
 # Numeric value representing the type of trigger signal received
 int8 type
 # Time of occurence
-time timestamp
+builtin_interfaces/Time timestamp
 
 # Below are constant numeric values describing eah type of trigger
 # A timestamp reset occurred.

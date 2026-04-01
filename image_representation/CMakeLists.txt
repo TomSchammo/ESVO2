@@ -1,39 +1,62 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.14)
 project(image_representation)
 
 # To be consistent with the configuration in esvo2_core
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_BUILD_TYPE DEBUG)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
-# set(CMAKE_CXX_FLAGS "-O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
-# set(catkin_simple_DIR ~/ros/rpg_eklt/build/catkin_simple/catkin_generated/installspace)
-find_package(catkin_simple REQUIRED)
-
-# set(IPP_DIR "/opt/intel/oneapi/ipp/2021.11/lib/cmake/ipp/")
-# find_package(IPP REQUIRED)
-
-catkin_simple(ALL_DEPS_REQUIRED)
-
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(dvs_msgs REQUIRED)
 
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+set(ROS2_DEPENDENCIES
+  rclcpp
+  sensor_msgs
+  std_msgs
+  cv_bridge
+  image_transport
+  builtin_interfaces
+  dvs_msgs
+)
 
 # make the executable
-cs_add_executable(image_representation
+add_executable(image_representation
     src/ImageRepresentation.cpp
     src/ImageRepresentation_node.cpp
 )
 
-# link the executable to the necesarry libs
-target_link_libraries(image_representation
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-#    ${IPP_LIBRARIES}
-   yaml-cpp
+target_include_directories(image_representation PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${EIGEN3_INCLUDE_DIR}
 )
 
-cs_install()
+ament_target_dependencies(image_representation ${ROS2_DEPENDENCIES})
+
+target_link_libraries(image_representation
+   ${OpenCV_LIBRARIES}
+   yaml-cpp
+   glog
+)
+
+# Install executable
+install(TARGETS image_representation
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install config files
+install(DIRECTORY cfg/
+  DESTINATION share/${PROJECT_NAME}/cfg
+)
+
+ament_package()

@@ -1,5 +1,5 @@
 # A DVS event
 uint16 x
 uint16 y
-time ts
+builtin_interfaces/Time ts
 bool polarity
