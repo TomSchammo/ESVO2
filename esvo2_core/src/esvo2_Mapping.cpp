@@ -1,14 +1,14 @@
 #include <esvo2_core/esvo2_Mapping.h>
-#include <esvo2_core/DVS_MappingStereoConfig.h>
+// #include <esvo2_core/DVS_MappingStereoConfig.h>  // dynamic_reconfigure not available in ROS2
 #include <esvo2_core/tools/params_helper.h>
 #include <esvo2_core/factor/pose_local_parameterization.h>
 #include <esvo2_core/factor/utility.h>
 #include <minkindr_conversions/kindr_tf.h>
 
-#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include <opencv2/imgproc.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
@@ -26,58 +26,45 @@
 
 namespace esvo2_core
 {
-  esvo2_Mapping::esvo2_Mapping(
-      const ros::NodeHandle &nh,
-      const ros::NodeHandle &nh_private)
-      : nh_(nh),
-        pnh_(nh_private),
-        TS_left_sub_(nh_, "time_surface_left", 10),
-        TS_right_sub_(nh_, "time_surface_right", 10),
-        AA_map_sub_(nh_, "AA_map", 10),
-        TS_negative_sub_(nh_, "time_surface_negative", 10),
-        TS_dx_sub_(nh_, "time_surface_negative_dx", 10),
-        TS_dy_sub_(nh_, "time_surface_negative_dy", 10),
-        TS_sync_(ApproxSyncPolicy(10), TS_left_sub_, TS_dx_sub_),
-        TS_AA_sync_(ApproxSyncPolicy2(10), TS_left_sub_, TS_right_sub_, AA_map_sub_,
-                      TS_negative_sub_, TS_dx_sub_, TS_dy_sub_),
-        it_(nh),
-        calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
+  esvo2_Mapping::esvo2_Mapping()
+      : rclcpp::Node("esvo2_mapping"),
+        calibInfoDir_(tools::param(this, "calibInfoDir", std::string(""))),
         camSysPtr_(new CameraSystem(calibInfoDir_, false)),
         dpConfigPtr_(new DepthProblemConfig(
-            tools::param(pnh_, "patch_size_X", 5),
-            tools::param(pnh_, "patch_size_Y", 5),
-            tools::param(pnh_, "LSnorm_ln", std::string("Tdist")),
-            tools::param(pnh_, "Tdist_nu", 0.0),
-            tools::param(pnh_, "Tdist_scale", 0.0),
-            tools::param(pnh_, "ITERATION_OPTIMIZATION", 1),
-            tools::param(pnh_, "RegularizationRadius", 5),
-            tools::param(pnh_, "RegularizationMinNeighbours", 8),
-            tools::param(pnh_, "RegularizationMinCloseNeighbours", 8))),
+            tools::param(this, "patch_size_X", 5),
+            tools::param(this, "patch_size_Y", 5),
+            tools::param(this, "LSnorm_ln", std::string("Tdist")),
+            tools::param(this, "Tdist_nu", 0.0),
+            tools::param(this, "Tdist_scale", 0.0),
+            tools::param(this, "ITERATION_OPTIMIZATION", 1),
+            tools::param(this, "RegularizationRadius", 5),
+            tools::param(this, "RegularizationMinNeighbours", 8),
+            tools::param(this, "RegularizationMinCloseNeighbours", 8))),
         dpSolver_(camSysPtr_, dpConfigPtr_, NUMERICAL, NUM_THREAD_MAPPING, true),
         dFusor_(camSysPtr_, dpConfigPtr_),
         dRegularizor_(dpConfigPtr_),
         dpConfigPtr_ln_(new DepthProblemConfig(
-            tools::param(pnh_, "patch_size_X", 25),
-            tools::param(pnh_, "patch_size_Y", 25),
-            tools::param(pnh_, "LSnorm_ln", std::string("Tdist")),
-            tools::param(pnh_, "Tdist_nu_ln", 0.0),
-            tools::param(pnh_, "Tdist_scale_ln", 0.0),
-            tools::param(pnh_, "ITERATION_OPTIMIZATION_LN", 1),
-            tools::param(pnh_, "RegularizationRadius", 5),
-            tools::param(pnh_, "RegularizationMinNeighbours", 8),
-            tools::param(pnh_, "RegularizationMinCloseNeighbours", 8))),
+            tools::param(this, "patch_size_X", 25),
+            tools::param(this, "patch_size_Y", 25),
+            tools::param(this, "LSnorm_ln", std::string("Tdist")),
+            tools::param(this, "Tdist_nu_ln", 0.0),
+            tools::param(this, "Tdist_scale_ln", 0.0),
+            tools::param(this, "ITERATION_OPTIMIZATION_LN", 1),
+            tools::param(this, "RegularizationRadius", 5),
+            tools::param(this, "RegularizationMinNeighbours", 8),
+            tools::param(this, "RegularizationMinCloseNeighbours", 8))),
         dpSolver_ln_(camSysPtr_, dpConfigPtr_ln_, NUMERICAL, NUM_THREAD_MAPPING, false),
         dFusor_ln_(camSysPtr_, dpConfigPtr_ln_),
         dRegularizor_ln_(dpConfigPtr_ln_),
-        ebm_(camSysPtr_, NUM_THREAD_MAPPING, tools::param(pnh_, "SmoothTimeSurface", false)),
+        ebm_(camSysPtr_, NUM_THREAD_MAPPING, tools::param(this, "SmoothTimeSurface", false)),
         pc_near_(new PointCloud()),
         pc_global_(new PointCloud()),
         depthFramePtr_(new DepthFrame(camSysPtr_->cam_left_ptr_->height_, camSysPtr_->cam_left_ptr_->width_)),
         BackendOpt_(camSysPtr_)
   {
     // frame id
-    dvs_frame_id_ = tools::param(pnh_, "dvs_frame_id", std::string("dvs"));
-    world_frame_id_ = tools::param(pnh_, "world_frame_id", std::string("world"));
+    dvs_frame_id_ = tools::param(this, "dvs_frame_id", std::string("dvs"));
+    world_frame_id_ = tools::param(this, "world_frame_id", std::string("world"));
     pc_near_->header.frame_id = world_frame_id_;
     pc_global_->header.frame_id = world_frame_id_;
     pc_color_ = pcl::PointCloud<pcl::PointXYZRGBL>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBL>());
@@ -87,61 +74,61 @@ namespace esvo2_core
 
     /**** mapping parameters ***/
     // range and visualization threshold
-    invDepth_min_range_ = tools::param(pnh_, "invDepth_min_range", 0.16);
-    invDepth_max_range_ = tools::param(pnh_, "invDepth_max_range", 2.0);
-    patch_area_ = tools::param(pnh_, "patch_size_X", 25) * tools::param(pnh_, "patch_size_Y", 25);
-    residual_vis_threshold_ = tools::param(pnh_, "residual_vis_threshold", 15);
-    residual_vis_threshold_ln_ = tools::param(pnh_, "residual_vis_threshold_ln", 15);
+    invDepth_min_range_ = tools::param(this, "invDepth_min_range", 0.16);
+    invDepth_max_range_ = tools::param(this, "invDepth_max_range", 2.0);
+    patch_area_ = tools::param(this, "patch_size_X", 25) * tools::param(this, "patch_size_Y", 25);
+    residual_vis_threshold_ = tools::param(this, "residual_vis_threshold", 15);
+    residual_vis_threshold_ln_ = tools::param(this, "residual_vis_threshold_ln", 15);
     cost_vis_threshold_ = pow(residual_vis_threshold_, 2) * patch_area_;
     cost_vis_threshold_ln_ = pow(residual_vis_threshold_ln_, 2) * patch_area_;
-    stdVar_vis_threshold_ = tools::param(pnh_, "stdVar_vis_threshold", 0.005);
-    stdVar_vis_threshold_ln_ = tools::param(pnh_, "stdVar_vis_threshold_ln", 1);
-    age_max_range_ = tools::param(pnh_, "age_max_range", 5);
-    age_vis_threshold_ = tools::param(pnh_, "age_vis_threshold", 0);
-    fusion_radius_ = tools::param(pnh_, "fusion_radius", 0);
-    maxNumFusionFrames_ = tools::param(pnh_, "maxNumFusionFrames", 10);
-    maxNumFusionFrames_ln_ = tools::param(pnh_, "maxNumFusionFrames_ln", 10);
-    FusionStrategy_ = tools::param(pnh_, "FUSION_STRATEGY", std::string("CONST_FRAMES"));
-    maxNumFusionPoints_ = tools::param(pnh_, "maxNumFusionPoints", 2000);
-    INIT_SGM_DP_NUM_Threshold_ = tools::param(pnh_, "INIT_SGM_DP_NUM_THRESHOLD", 500);
+    stdVar_vis_threshold_ = tools::param(this, "stdVar_vis_threshold", 0.005);
+    stdVar_vis_threshold_ln_ = tools::param(this, "stdVar_vis_threshold_ln", 1);
+    age_max_range_ = tools::param(this, "age_max_range", 5);
+    age_vis_threshold_ = tools::param(this, "age_vis_threshold", 0);
+    fusion_radius_ = tools::param(this, "fusion_radius", 0);
+    maxNumFusionFrames_ = tools::param(this, "maxNumFusionFrames", 10);
+    maxNumFusionFrames_ln_ = tools::param(this, "maxNumFusionFrames_ln", 10);
+    FusionStrategy_ = tools::param(this, "FUSION_STRATEGY", std::string("CONST_FRAMES"));
+    maxNumFusionPoints_ = tools::param(this, "maxNumFusionPoints", 2000);
+    INIT_SGM_DP_NUM_Threshold_ = tools::param(this, "INIT_SGM_DP_NUM_THRESHOLD", 500);
 
     // options
-    bDenoising_ = tools::param(pnh_, "Denoising", false);
-    bRegularization_ = tools::param(pnh_, "Regularization", false);
-    resetButton_ = tools::param(pnh_, "ResetButton", false);
-    blarge_scale_ = tools::param(pnh_, "large_scale", true);
-    bpoints_from_AA_ = tools::param(pnh_, "select_points_from_AA", true);
-    eta_for_select_points_ = tools::param(pnh_, "eta_for_select_points", 0.1);
+    bDenoising_ = tools::param(this, "Denoising", false);
+    bRegularization_ = tools::param(this, "Regularization", false);
+    resetButton_ = tools::param(this, "ResetButton", false);
+    blarge_scale_ = tools::param(this, "large_scale", true);
+    bpoints_from_AA_ = tools::param(this, "select_points_from_AA", true);
+    eta_for_select_points_ = tools::param(this, "eta_for_select_points", 0.1);
 
     // visualization parameters
-    bVisualizeGlobalPC_ = tools::param(pnh_, "bVisualizeGlobalPC", false);
-    visualizeGPC_interval_ = tools::param(pnh_, "visualizeGPC_interval", 3);
-    visualize_range_ = tools::param(pnh_, "visualize_range", 2.5);
-    numAddedPC_threshold_ = tools::param(pnh_, "NumGPC_added_per_refresh", 1000);
+    bVisualizeGlobalPC_ = tools::param(this, "bVisualizeGlobalPC", false);
+    visualizeGPC_interval_ = tools::param(this, "visualizeGPC_interval", 3);
+    visualize_range_ = tools::param(this, "visualize_range", 2.5);
+    numAddedPC_threshold_ = tools::param(this, "NumGPC_added_per_refresh", 1000);
 
     // module parameters
-    PROCESS_EVENT_NUM_ = tools::param(pnh_, "PROCESS_EVENT_NUM", 500);
-    PROCESS_EVENT_NUM_AA_ = tools::param(pnh_, "PROCESS_EVENT_NUM_AA", 500);
-    TS_HISTORY_LENGTH_ = tools::param(pnh_, "TS_HISTORY_LENGTH", 100);
-    mapping_rate_hz_ = tools::param(pnh_, "mapping_rate_hz", 20);
+    PROCESS_EVENT_NUM_ = tools::param(this, "PROCESS_EVENT_NUM", 500);
+    PROCESS_EVENT_NUM_AA_ = tools::param(this, "PROCESS_EVENT_NUM_AA", 500);
+    TS_HISTORY_LENGTH_ = tools::param(this, "TS_HISTORY_LENGTH", 100);
+    mapping_rate_hz_ = tools::param(this, "mapping_rate_hz", 20);
 
     // Event Block Matching (BM) parameters
-    BM_half_slice_thickness_ = tools::param(pnh_, "BM_half_slice_thickness", 0.001);
-    BM_patch_size_X_ = tools::param(pnh_, "patch_size_X", 25);
-    BM_patch_size_Y_ = tools::param(pnh_, "patch_size_Y", 25);
-    BM_patch_size_X_2_ = tools::param(pnh_, "patch_size_X_2", 25);
-    BM_patch_size_Y_2_ = tools::param(pnh_, "patch_size_Y_2", 25);
-    x_patches_ = tools::param(pnh_, "x_patches", 8);
-    y_patches_ = tools::param(pnh_, "y_patches", 6);
-    BM_min_disparity_ = tools::param(pnh_, "BM_min_disparity", 3);
-    BM_max_disparity_ = tools::param(pnh_, "BM_max_disparity", 40);
-    BM_step_ = tools::param(pnh_, "BM_step", 1);
-    BM_ZNCC_Threshold_ = tools::param(pnh_, "BM_ZNCC_Threshold", 0.1);
-    BM_bUpDownConfiguration_ = tools::param(pnh_, "BM_bUpDownConfiguration", false);
-    bUSE_IMU_ = tools::param(pnh_, "USE_IMU", true);
+    BM_half_slice_thickness_ = tools::param(this, "BM_half_slice_thickness", 0.001);
+    BM_patch_size_X_ = tools::param(this, "patch_size_X", 25);
+    BM_patch_size_Y_ = tools::param(this, "patch_size_Y", 25);
+    BM_patch_size_X_2_ = tools::param(this, "patch_size_X_2", 25);
+    BM_patch_size_Y_2_ = tools::param(this, "patch_size_Y_2", 25);
+    x_patches_ = tools::param(this, "x_patches", 8);
+    y_patches_ = tools::param(this, "y_patches", 6);
+    BM_min_disparity_ = tools::param(this, "BM_min_disparity", 3);
+    BM_max_disparity_ = tools::param(this, "BM_max_disparity", 40);
+    BM_step_ = tools::param(this, "BM_step", 1);
+    BM_ZNCC_Threshold_ = tools::param(this, "BM_ZNCC_Threshold", 0.1);
+    BM_bUpDownConfiguration_ = tools::param(this, "BM_bUpDownConfiguration", false);
+    bUSE_IMU_ = tools::param(this, "USE_IMU", true);
 
     // distance from last frame
-    distance_from_last_frame_ = tools::param(pnh_, "distance_from_last_frame", 0.04);
+    distance_from_last_frame_ = tools::param(this, "distance_from_last_frame", 0.04);
 
     // SGM parameters (Used by Initialization)
     num_disparities_ = BM_max_disparity_;
@@ -170,35 +157,68 @@ namespace esvo2_core
                          BM_step_, BM_ZNCC_Threshold_, BM_bUpDownConfiguration_, BM_patch_size_X_2_, BM_patch_size_Y_2_);
     BM_min_disparity_ = minDisparity;
     BM_max_disparity_ = maxDisparity;
-    // system status
+    // system status - use shared topic for inter-node coordination (ROS2 parameters are node-local)
     ESVO2_System_Status_ = "INITIALIZATION";
-    nh_.setParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+    system_status_pub_ = create_publisher<std_msgs::msg::String>("/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local());
+    system_status_sub_ = create_subscription<std_msgs::msg::String>(
+      "/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local(),
+      [this](const std_msgs::msg::String::SharedPtr msg) {
+        ESVO2_System_Status_ = msg->data;
+      });
+    // Publish initial status
+    auto status_msg = std_msgs::msg::String();
+    status_msg.data = ESVO2_System_Status_;
+    system_status_pub_->publish(status_msg);
 
     // callback functions
-    stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo2_Mapping::stampedPoseCallback, this);
-    TS_AA_sync_.registerCallback(boost::bind(&esvo2_Mapping::timeSurfaceCallback, this, _1, _2, _3, _4, _5, _6));
+    stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+      "stamped_pose", 10,
+      std::bind(&esvo2_Mapping::stampedPoseCallback, this, std::placeholders::_1));
+
+    // message_filters subscribers
+    TS_left_sub_.subscribe(this, "time_surface_left", rmw_qos_profile_default);
+    TS_right_sub_.subscribe(this, "time_surface_right", rmw_qos_profile_default);
+    AA_map_sub_.subscribe(this, "AA_map", rmw_qos_profile_default);
+    TS_negative_sub_.subscribe(this, "time_surface_negative", rmw_qos_profile_default);
+    TS_dx_sub_.subscribe(this, "time_surface_negative_dx", rmw_qos_profile_default);
+    TS_dy_sub_.subscribe(this, "time_surface_negative_dy", rmw_qos_profile_default);
+
+    // message_filters synchronizer
+    TS_AA_sync_ = std::make_shared<message_filters::Synchronizer<ApproxSyncPolicy2>>(
+      ApproxSyncPolicy2(10), TS_left_sub_, TS_right_sub_, AA_map_sub_,
+      TS_negative_sub_, TS_dx_sub_, TS_dy_sub_);
+    TS_AA_sync_->registerCallback(std::bind(&esvo2_Mapping::timeSurfaceCallback, this,
+      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+      std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
 
     // point sampling
     if (bpoints_from_AA_)
-      AA_frequency_sub_ = nh_.subscribe<sensor_msgs::Image>("AA_left", 0, &esvo2_Mapping::AACallback, this); 
+      AA_frequency_sub_ = create_subscription<sensor_msgs::msg::Image>(
+        "AA_left", 10,
+        std::bind(&esvo2_Mapping::AACallback, this, std::placeholders::_1));
     else
-      events_left_sub_ = nh_.subscribe<dvs_msgs::msg::EventArray>("events_left", 0, boost::bind(&esvo2_Mapping::eventsCallback, this, _1, boost::ref(events_left_)));
+      events_left_sub_ = create_subscription<dvs_msgs::msg::EventArray>(
+        "events_left", rclcpp::QoS(10).best_effort(),
+        [this](const dvs_msgs::msg::EventArray::SharedPtr msg) { eventsCallback(msg, events_left_); });
 
     // IMU
     if (bUSE_IMU_)
-      imu_sub_ = nh_.subscribe("/imu/data", 0, &esvo2_Mapping::refImuCallback, this); 
+      imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
+        "/imu/data", 10,
+        std::bind(&esvo2_Mapping::refImuCallback, this, std::placeholders::_1));
 
     // TF
-    tf_ = std::make_shared<tf::Transformer>(true, ros::Duration(100.0));
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     // result publishers
-    invDepthMap_pub_ = it_.advertise("Inverse_Depth_Map2", 1);
-    V_ba_bg_pub_ = nh_.advertise<events_repacking_tool::V_ba_bg>("/esvo2_mapping/V_ba_bg", 1);
-    pc_pub_ = nh_.advertise<PointCloud>("/esvo2_mapping/pointcloud_local2", 1);
-    pc_filtered_pub_ = nh_.advertise<PointCloud>("/esvo2_mapping/pointcloud_filtered2", 1);
+    invDepthMap_pub_ = image_transport::create_publisher(this, "Inverse_Depth_Map2");
+    V_ba_bg_pub_ = create_publisher<events_repacking_tool::msg::VBaBg>("/esvo2_mapping/V_ba_bg", 1);
+    pc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_local2", 1);
+    pc_filtered_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_filtered2", 1);
     if (bVisualizeGlobalPC_)
     {
-      gpc_pub_ = nh_.advertise<PointCloud>("/esvo2_mapping/pointcloud_global2", 1);
+      gpc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_global2", 1);
       pc_global_->reserve(5000000);
       t_last_pub_pc_ = 0.0;
     }
@@ -212,19 +232,13 @@ namespace esvo2_core
                               std::move(mapping_thread_promise_), std::move(reset_future_));
     MappingThread.detach();
 
-    // Dynamic reconfigure
-    dynamic_reconfigure_callback_ = boost::bind(&esvo2_Mapping::onlineParameterChangeCallback, this, _1, _2);
-
-    server_.reset(new dynamic_reconfigure::Server<DVS_MappingStereoConfig>(nh_private));
-    server_->setCallback(dynamic_reconfigure_callback_);
+    // Dynamic reconfigure not available in ROS2
+    // Use ROS2 parameters with callbacks instead if needed
   }
 
   esvo2_Mapping::~esvo2_Mapping()
   {
-    pc_pub_.shutdown();
-    pc_filtered_pub_.shutdown();
-    invDepthMap_pub_.shutdown();
-    V_ba_bg_pub_.shutdown();
+    // ROS2 handles cleanup automatically through shared_ptr
   }
 
   void esvo2_Mapping::MappingLoop(

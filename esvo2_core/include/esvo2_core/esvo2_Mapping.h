@@ -45,6 +45,7 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <esvo2_core/factor/imu_integration.h>
 #include <esvo2_core/core/BackendOptimization.h>
 
@@ -141,7 +142,6 @@ namespace esvo2_core
     // Publishers
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_pub_, gpc_pub_, pc_filtered_pub_;
     rclcpp::Publisher<events_repacking_tool::msg::VBaBg>::SharedPtr V_ba_bg_pub_;
-    std::shared_ptr<image_transport::ImageTransport> it_;
     double t_last_pub_pc_;
 
     // Time-Surface sync policy
@@ -177,7 +177,9 @@ namespace esvo2_core
     size_t TS_id_;
     rclcpp::Time tf_lastest_common_time_;
 
-    // system
+    // system status communication (ROS2 uses topics instead of global parameters)
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr system_status_pub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr system_status_sub_;
     std::string ESVO2_System_Status_;
     DepthProblemConfig::Ptr dpConfigPtr_, dpConfigPtr_ln_;
     DepthProblemSolver dpSolver_, dpSolver_ln_;

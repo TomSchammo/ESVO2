@@ -2,77 +2,101 @@
 #include <esvo2_core/tools/TicToc.h>
 #include <esvo2_core/tools/params_helper.h>
 #include <minkindr_conversions/kindr_tf.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <sys/stat.h>
 
 //#define ESVO2_CORE_TRACKING_DEBUG
 //#define ESVO2_CORE_TRACKING_DEBUG
 namespace esvo2_core
 {
-esvo2_Tracking::esvo2_Tracking(
-  const ros::NodeHandle &nh,
-  const ros::NodeHandle &nh_private):
-  nh_(nh),
-  pnh_(nh_private),
-  it_(nh),
-  TS_left_sub_(nh_, "time_surface_left", 10),
-  TS_right_sub_(nh_, "time_surface_right", 10),
-  TS_negative_sub_(nh_, "time_surface_negative", 10),
-  TS_dx_sub_(nh_, "time_surface_dx", 10),
-  TS_dy_sub_(nh_, "time_surface_dy", 10),
-  TS_sync_(ApproximateSyncPolicy(10), TS_left_sub_, TS_right_sub_),
-  TS_negaTS_sync_(ApproximateSyncPolicy_negaTS(10), TS_left_sub_, TS_negative_sub_, TS_dx_sub_, TS_dy_sub_),
-  calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
+esvo2_Tracking::esvo2_Tracking()
+  : rclcpp::Node("esvo2_tracking"),
+  calibInfoDir_(tools::param(this, "calibInfoDir", std::string(""))),
   camSysPtr_(new CameraSystem(calibInfoDir_, false)),
   rpConfigPtr_(new RegProblemConfig(
-    tools::param(pnh_, "patch_size_X", 25),
-    tools::param(pnh_, "patch_size_Y", 25),
-    tools::param(pnh_, "kernelSize", 15),
-    tools::param(pnh_, "LSnorm", std::string("l2")),
-    tools::param(pnh_, "huber_threshold", 10.0),
-    tools::param(pnh_, "invDepth_min_range", 0.0),
-    tools::param(pnh_, "invDepth_max_range", 0.0),
-    tools::param(pnh_, "MIN_NUM_EVENTS", 1000),
-    tools::param(pnh_, "MAX_REGISTRATION_POINTS", 500),
-    tools::param(pnh_, "BATCH_SIZE", 200),
-    tools::param(pnh_, "MAX_ITERATION", 10))),
-  rpType_((RegProblemType)((size_t)tools::param(pnh_, "RegProblemType", 0))),
+    tools::param(this, "patch_size_X", 25),
+    tools::param(this, "patch_size_Y", 25),
+    tools::param(this, "kernelSize", 15),
+    tools::param(this, "LSnorm", std::string("l2")),
+    tools::param(this, "huber_threshold", 10.0),
+    tools::param(this, "invDepth_min_range", 0.0),
+    tools::param(this, "invDepth_max_range", 0.0),
+    tools::param(this, "MIN_NUM_EVENTS", 1000),
+    tools::param(this, "MAX_REGISTRATION_POINTS", 500),
+    tools::param(this, "BATCH_SIZE", 200),
+    tools::param(this, "MAX_ITERATION", 10))),
+  rpType_((RegProblemType)((size_t)tools::param(this, "RegProblemType", 0))),
   rpSolver_(camSysPtr_, rpConfigPtr_, rpType_, NUM_THREAD_TRACKING),
   ESVO2_System_Status_("INITIALIZATION"),
   imu_data_(Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), g_optimal),
   ets_(IDLE)
 {
   // offline data
-  dvs_frame_id_        = tools::param(pnh_, "dvs_frame_id", std::string("dvs"));
-  world_frame_id_      = tools::param(pnh_, "world_frame_id", std::string("world"));
+  dvs_frame_id_        = tools::param(this, "dvs_frame_id", std::string("dvs"));
+  world_frame_id_      = tools::param(this, "world_frame_id", std::string("world"));
 
   /**** online parameters ***/
-  tracking_rate_hz_    = tools::param(pnh_, "tracking_rate_hz", 100);
-  TS_HISTORY_LENGTH_  = tools::param(pnh_, "TS_HISTORY_LENGTH", 100);
-  REF_HISTORY_LENGTH_  = tools::param(pnh_, "REF_HISTORY_LENGTH", 5);
-  bSaveTrajectory_     = tools::param(pnh_, "SAVE_TRAJECTORY", false);
-  bVisualizeTrajectory_ = tools::param(pnh_, "VISUALIZE_TRAJECTORY", true);
-  bUseImu_ = tools::param(pnh_, "USE_IMU", true);
-  resultPath_             = tools::param(pnh_, "PATH_TO_SAVE_TRAJECTORY", std::string());
-  nh_.setParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+  tracking_rate_hz_    = tools::param(this, "tracking_rate_hz", 100);
+  TS_HISTORY_LENGTH_   = tools::param(this, "TS_HISTORY_LENGTH", 100);
+  REF_HISTORY_LENGTH_  = tools::param(this, "REF_HISTORY_LENGTH", 5);
+  bSaveTrajectory_     = tools::param(this, "SAVE_TRAJECTORY", false);
+  bVisualizeTrajectory_ = tools::param(this, "VISUALIZE_TRAJECTORY", true);
+  bUseImu_ = tools::param(this, "USE_IMU", true);
+  resultPath_          = tools::param(this, "PATH_TO_SAVE_TRAJECTORY", std::string());
+
+  // system status - use shared topic for inter-node coordination (ROS2 parameters are node-local)
+  system_status_pub_ = create_publisher<std_msgs::msg::String>("/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local());
+  system_status_sub_ = create_subscription<std_msgs::msg::String>(
+    "/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local(),
+    [this](const std_msgs::msg::String::SharedPtr msg) {
+      ESVO2_System_Status_ = msg->data;
+    });
 
   // get extrinsic parameters
   R_b_c_ = camSysPtr_->cam_left_ptr_->T_b_c_.block<3, 3>(0, 0);
-  
+
   imu_data_.initialization(ba_, bg_);
   initVsFlag = false;
 
-  TS_negaTS_sync_.registerCallback(boost::bind(&esvo2_Tracking::timeSurface_NegaTS_Callback, this, _1, _2, _3, _4));
+  // message_filters subscribers
+  TS_left_sub_.subscribe(this, "time_surface_left", rmw_qos_profile_default);
+  TS_right_sub_.subscribe(this, "time_surface_right", rmw_qos_profile_default);
+  TS_negative_sub_.subscribe(this, "time_surface_negative", rmw_qos_profile_default);
+  TS_dx_sub_.subscribe(this, "time_surface_dx", rmw_qos_profile_default);
+  TS_dy_sub_.subscribe(this, "time_surface_dy", rmw_qos_profile_default);
 
-  tf_ = std::make_shared<tf::Transformer>(true, ros::Duration(100.0));
-  pose_pub_ = nh_.advertise<geometry_msgs::msg::PoseStamped>("/esvo2_tracking/pose_pub", 1);
-  path_pub_ = nh_.advertise<nav_msgs::Path>("/esvo2_tracking/trajectory", 1);
-  map_sub_ = nh_.subscribe("pointcloud", 0, &esvo2_Tracking::refMapCallback, this);// local map in the ref view.
-  stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo2_Tracking::stampedPoseCallback, this);// for accessing the pose of the ref view.
-  imu_sub_ = nh_.subscribe("/imu/data", 0, &esvo2_Tracking::refImuCallback, this);// local map in the ref view.
-  V_ba_bg_sub_ = nh_.subscribe("/esvo2_mapping/V_ba_bg", 0, &esvo2_Tracking::VBaBgCallback, this);
+  // message_filters synchronizers
+  TS_sync_ = std::make_shared<message_filters::Synchronizer<ApproximateSyncPolicy>>(
+    ApproximateSyncPolicy(10), TS_left_sub_, TS_right_sub_);
+  TS_negaTS_sync_ = std::make_shared<message_filters::Synchronizer<ApproximateSyncPolicy_negaTS>>(
+    ApproximateSyncPolicy_negaTS(10), TS_left_sub_, TS_negative_sub_, TS_dx_sub_, TS_dy_sub_);
+  TS_negaTS_sync_->registerCallback(std::bind(&esvo2_Tracking::timeSurface_NegaTS_Callback, this,
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+
+  // TF
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+  // Publishers
+  pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("/esvo2_tracking/pose_pub", 1);
+  path_pub_ = create_publisher<nav_msgs::msg::Path>("/esvo2_tracking/trajectory", 1);
+
+  // Subscribers
+  map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+    "pointcloud", 10,
+    std::bind(&esvo2_Tracking::refMapCallback, this, std::placeholders::_1));
+  stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+    "stamped_pose", 10,
+    std::bind(&esvo2_Tracking::stampedPoseCallback, this, std::placeholders::_1));
+  imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
+    "/imu/data", 10,
+    std::bind(&esvo2_Tracking::refImuCallback, this, std::placeholders::_1));
+  V_ba_bg_sub_ = create_subscription<events_repacking_tool::msg::VBaBg>(
+    "/esvo2_mapping/V_ba_bg", 10,
+    std::bind(&esvo2_Tracking::VBaBgCallback, this, std::placeholders::_1));
+
   /*** For Visualization and Test ***/
-  reprojMap_pub_left_ = it_.advertise("Reproj_Map_Left", 1);
+  reprojMap_pub_left_ = image_transport::create_publisher(this, "Reproj_Map_Left");
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
 
   // rename the old trajectory file
@@ -90,10 +114,10 @@ esvo2_Tracking::~esvo2_Tracking()
   if(!resultPath_.empty())
   {
     LOG(INFO) << "pose size: " << lPose_.size();
-    string path = std::string(resultPath_ + "result.txt");
+    std::string path = std::string(resultPath_ + "result.txt");
     saveTrajectory(path);
   }
-  pose_pub_.shutdown();
+  // ROS2 handles cleanup automatically through shared_ptr
 }
 
 void esvo2_Tracking::TrackingLoop()

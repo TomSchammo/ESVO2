@@ -2,7 +2,6 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
-#include <std_msgs/Float32.h>
 #include <glog/logging.h>
 
 #include <cmath>
@@ -12,49 +11,70 @@
 
 namespace image_representation
 {
-  ImageRepresentation::ImageRepresentation(ros::NodeHandle &nh, ros::NodeHandle nh_private) : nh_(nh)
+  ImageRepresentation::ImageRepresentation()
+    : rclcpp::Node("image_representation")
   {
-    // setup subscribers and publishers
-    event_sub_ = nh_.subscribe("events", 0, &ImageRepresentation::eventsCallback, this);
-    image_transport::ImageTransport it_(nh_);
-    nh_private.param<bool>("is_left", is_left_, true);    // is left camera
-    if (is_left_)   
+    // Declare and get parameters
+    this->declare_parameter<bool>("is_left", true);
+    this->get_parameter("is_left", is_left_);
+
+    // setup subscribers
+    event_sub_ = create_subscription<dvs_msgs::msg::EventArray>(
+      "events", rclcpp::QoS(10).best_effort(),
+      std::bind(&ImageRepresentation::eventsCallback, this, std::placeholders::_1));
+
+    // setup publishers using image_transport
+    if (is_left_)
     {
-      image_representation_pub_TS_ = it_.advertise("image_representation_TS_", 5);                   // for block matching
-      image_representation_pub_negative_TS_ = it_.advertise("image_representation_negative_TS_", 5); // negative OS-TS for 3D-2D regristration
-      image_representation_pub_AA_frequency_ = it_.advertise("image_representation_AA_frequency_", 5);
-      image_representation_pub_AA_mat_ = it_.advertise("image_representation_AA_mat_", 5); // for temporal stereo matching
-      dx_image_pub_ = it_.advertise("dx_image_pub_", 5);                                   // gradient map for point sampling
-      dy_image_pub_ = it_.advertise("dy_image_pub_", 5);
+      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_");
+      image_representation_pub_negative_TS_ = image_transport::create_publisher(this, "image_representation_negative_TS_");
+      image_representation_pub_AA_frequency_ = image_transport::create_publisher(this, "image_representation_AA_frequency_");
+      image_representation_pub_AA_mat_ = image_transport::create_publisher(this, "image_representation_AA_mat_");
+      dx_image_pub_ = image_transport::create_publisher(this, "dx_image_pub_");
+      dy_image_pub_ = image_transport::create_publisher(this, "dy_image_pub_");
     }
     else
     {
-      image_representation_pub_TS_ = it_.advertise("image_representation_TS_", 5);
+      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_");
     }
-    nh_private.param<bool>("use_sim_time", bUse_Sim_Time_, true);
+
+    // Declare and get parameters
+    this->declare_parameter<bool>("use_sim_time", true);
+    this->get_parameter("use_sim_time", bUse_Sim_Time_);
 
     // system variables
     int representation_mode;
-    nh_private.param<int>("representation_mode", representation_mode, 0);
-    nh_private.param<int>("median_blur_kernel_size", median_blur_kernel_size_, 1);
-    nh_private.param<int>("blur_size", blur_size_, 7);
-    nh_private.param<int>("max_event_queue_len", max_event_queue_length_, 20);
-   
+    this->declare_parameter<int>("representation_mode", 0);
+    this->get_parameter("representation_mode", representation_mode);
+    this->declare_parameter<int>("median_blur_kernel_size", 1);
+    this->get_parameter("median_blur_kernel_size", median_blur_kernel_size_);
+    this->declare_parameter<int>("blur_size", 7);
+    this->get_parameter("blur_size", blur_size_);
+    this->declare_parameter<int>("max_event_queue_len", 20);
+    this->get_parameter("max_event_queue_len", max_event_queue_length_);
+
     representation_mode_ = (RepresentationMode)representation_mode;
-       
+
     // rectify variables
     bCamInfoAvailable_ = false;
     bSensorInitialized_ = false;
     sensor_size_ = cv::Size(0, 0);
 
     // local parameters
-    nh_private.param<bool>("use_stereo_cam", bUseStereoCam_, true);
-    nh_private.param<double>("decay_ms", decay_ms_, 30);
+    this->declare_parameter<bool>("use_stereo_cam", true);
+    this->get_parameter("use_stereo_cam", bUseStereoCam_);
+    this->declare_parameter<double>("decay_ms", 30.0);
+    this->get_parameter("decay_ms", decay_ms_);
     decay_sec_ = decay_ms_ / 1000.0;
-    nh_private.param<int>("x_patches", x_patches_, 8); // patch of AA
-    nh_private.param<int>("y_patches", y_patches_, 6);
-    nh_private.param<int>("generation_rate_hz", generation_rate_hz_, 100);
-    nh_private.param("calibInfoDir", calibInfoDir_, std::string("path is not given"));
+    this->declare_parameter<int>("x_patches", 8);
+    this->get_parameter("x_patches", x_patches_);
+    this->declare_parameter<int>("y_patches", 6);
+    this->get_parameter("y_patches", y_patches_);
+    this->declare_parameter<int>("generation_rate_hz", 100);
+    this->get_parameter("generation_rate_hz", generation_rate_hz_);
+    this->declare_parameter<std::string>("calibInfoDir", "path is not given");
+    this->get_parameter("calibInfoDir", calibInfoDir_);
+
     if (!loadCalibInfo(calibInfoDir_, is_left_))
     {
       RCLCPP_ERROR(this->get_logger(), "Load Calib Info Error!!!  Given path is: %s", calibInfoDir_.c_str());
@@ -72,12 +92,7 @@ namespace image_representation
 
   ImageRepresentation::~ImageRepresentation()
   {
-    dx_image_pub_.shutdown();
-    dy_image_pub_.shutdown();
-    image_representation_pub_TS_.shutdown();
-    image_representation_pub_negative_TS_.shutdown();
-    image_representation_pub_AA_frequency_.shutdown();
-    image_representation_pub_AA_mat_.shutdown();
+    // ROS2 handles cleanup automatically
   }
 
   void ImageRepresentation::init(int width, int height)

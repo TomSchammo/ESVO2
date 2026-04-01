@@ -37,6 +37,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <std_msgs/msg/string.hpp>
 
 #include <esvo2_core/factor/imu_integration.h>
 #include <events_repacking_tool/msg/v_ba_bg.hpp>
@@ -93,8 +94,6 @@ namespace esvo2_core
     Eigen::Matrix3d fixRotationMatrix(const Eigen::Matrix3d &R);
 
   private:
-    std::shared_ptr<image_transport::ImageTransport> it_;
-
     // subscribers and publishers
     // rclcpp::Subscription<dvs_msgs::msg::EventArray>::SharedPtr events_left_sub_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr map_sub_, map_sub_for_tracking_visualization_;
@@ -170,6 +169,9 @@ namespace esvo2_core
     /*** system objects ***/
     RegProblemType rpType_;
     TrackingStatus ets_;
+    // system status communication (ROS2 uses topics instead of global parameters)
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr system_status_pub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr system_status_sub_;
     std::string ESVO2_System_Status_;
     RegProblemConfig::Ptr rpConfigPtr_;
     RegProblemSolverLM rpSolver_;
