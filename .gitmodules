@@ -1,0 +1,3 @@
+[submodule "minkindr_ros2"]
+	path = minkindr_ros2
+	url = https://github.com/TomSchammo/minkindr_ros2.git
