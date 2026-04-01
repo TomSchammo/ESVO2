@@ -1,21 +1,20 @@
 #ifndef image_representation_H_
 #define image_representation_H_
 
-#include <ros/ros.h>
-#include <std_msgs/Time.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/image_encodings.h>
-#include <dynamic_reconfigure/server.h>
-#include <image_transport/image_transport.h>
+#include <rclcpp/rclcpp.hpp>
+#include <builtin_interfaces/msg/time.hpp>
+#include <cv_bridge/cv_bridge.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <image_transport/image_transport.hpp>
 #include <image_representation/TicToc.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <dvs_msgs/Event.h>
-#include <dvs_msgs/EventArray.h>
+#include <dvs_msgs/msg/event.hpp>
+#include <dvs_msgs/msg/event_array.hpp>
 
 #include <deque>
 #include <mutex>
@@ -28,69 +27,68 @@
 
 namespace image_representation
 {
-  using EventQueue = std::deque<dvs_msgs::Event>;
+  using EventQueue = std::deque<dvs_msgs::msg::Event>;
 
-  struct ROSTimeCmp
+  struct RclcppTimeCmp
   {
-    bool operator()(const ros::Time &a, const ros::Time &b) const
+    bool operator()(const rclcpp::Time &a, const rclcpp::Time &b) const
     {
-      return a.toNSec() < b.toNSec();
+      return a.nanoseconds() < b.nanoseconds();
     }
   };
-  using GlobalEventQueue = std::map<ros::Time, dvs_msgs::Event, ROSTimeCmp>;
+  using GlobalEventQueue = std::map<rclcpp::Time, dvs_msgs::msg::Event, RclcppTimeCmp>;
 
   inline static EventQueue::iterator EventBuffer_lower_bound(
-      EventQueue &eb, ros::Time &t)
+      EventQueue &eb, rclcpp::Time &t)
   {
     return std::lower_bound(eb.begin(), eb.end(), t,
-                            [](const dvs_msgs::Event &e, const ros::Time &t)
-                            { return e.ts.toSec() < t.toSec(); });
+                            [](const dvs_msgs::msg::Event &e, const rclcpp::Time &t)
+                            { return rclcpp::Time(e.ts).seconds() < t.seconds(); });
   }
 
   inline static EventQueue::iterator EventBuffer_upper_bound(
-      EventQueue &eb, ros::Time &t)
+      EventQueue &eb, rclcpp::Time &t)
   {
     return std::upper_bound(eb.begin(), eb.end(), t,
-                            [](const ros::Time &t, const dvs_msgs::Event &e)
-                            { return t.toSec() < e.ts.toSec(); });
+                            [](const rclcpp::Time &t, const dvs_msgs::msg::Event &e)
+                            { return t.seconds() < rclcpp::Time(e.ts).seconds(); });
   }
 
-  inline static std::vector<dvs_msgs::Event>::iterator EventVector_lower_bound(
-      std::vector<dvs_msgs::Event> &ev, double &t)
+  inline static std::vector<dvs_msgs::msg::Event>::iterator EventVector_lower_bound(
+      std::vector<dvs_msgs::msg::Event> &ev, double &t)
   {
     return std::lower_bound(ev.begin(), ev.end(), t,
-                            [](const dvs_msgs::Event &e, const double &t)
-                            { return e.ts.toSec() < t; });
+                            [](const dvs_msgs::msg::Event &e, const double &t)
+                            { return rclcpp::Time(e.ts).seconds() < t; });
   }
 
-  class ImageRepresentation
+  class ImageRepresentation : public rclcpp::Node
   {
   public:
-    ImageRepresentation(ros::NodeHandle &nh, ros::NodeHandle nh_private);
+    ImageRepresentation();
     virtual ~ImageRepresentation();
 
-    static bool compare_time(const dvs_msgs::Event &e, const double reference_time)
+    static bool compare_time(const dvs_msgs::msg::Event &e, const double reference_time)
     {
-      return reference_time < e.ts.toSec();
+      return reference_time < rclcpp::Time(e.ts).seconds();
     }
 
   private:
-    ros::NodeHandle nh_;
     // core
     void init(int width, int height);
     // Support: TS, AA, negative_TS, negative_TS_dx, negative_TS_dy
-    void createImageRepresentationAtTime(const ros::Time &external_sync_time);
+    void createImageRepresentationAtTime(const rclcpp::Time &external_sync_time);
     void GenerationLoop();
 
     // callbacks
-    void eventsCallback(const dvs_msgs::EventArray::ConstPtr &msg);
+    void eventsCallback(const dvs_msgs::msg::EventArray::SharedPtr msg);
 
     // utils
     void clearEventQueue();
     bool loadCalibInfo(const std::string &cameraSystemDir, bool &is_left);
-    void clearEvents(int distance, std::vector<dvs_msgs::Event>::iterator ptr_e);
+    void clearEvents(int distance, std::vector<dvs_msgs::msg::Event>::iterator ptr_e);
 
-    void AA_thread(std::vector<dvs_msgs::Event>::iterator &ptr_e, int distance, double external_t);
+    void AA_thread(std::vector<dvs_msgs::msg::Event>::iterator &ptr_e, int distance, double external_t);
     void sobel(double external_t);
     bool fileExists(const std::string &filename);
     // tests
@@ -103,8 +101,8 @@ namespace image_representation
     Eigen::Matrix2Xd precomputed_rectified_points_;
 
     // sub & pub
-    ros::Subscriber event_sub_;
-    ros::Subscriber camera_info_sub_;
+    rclcpp::Subscription<dvs_msgs::msg::EventArray>::SharedPtr event_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
 
     image_transport::Publisher dx_image_pub_, dy_image_pub_;
     image_transport::Publisher image_representation_pub_TS_;
@@ -121,7 +119,7 @@ namespace image_representation
     bool bCamInfoAvailable_;
     bool bUse_Sim_Time_;
     cv::Size sensor_size_;
-    ros::Time sync_time_;
+    rclcpp::Time sync_time_;
     bool bSensorInitialized_;
 
     // offline parameters TODO
@@ -135,7 +133,7 @@ namespace image_representation
     // containers
     EventQueue events_;
 
-    std::vector<dvs_msgs::Event> vEvents_;
+    std::vector<dvs_msgs::msg::Event> vEvents_;
 
     cv::Mat representation_TS_;
     cv::Mat representation_AA_;
@@ -161,7 +159,7 @@ namespace image_representation
     double decay_sec_; // TS param
     int generation_rate_hz_;
     int x_patches_, y_patches_;
-    // std::vector<dvs_msgs::Event>::iterator ptr_e_;
+    // std::vector<dvs_msgs::msg::Event>::iterator ptr_e_;
 
     // calib info
     std::string calibInfoDir_;

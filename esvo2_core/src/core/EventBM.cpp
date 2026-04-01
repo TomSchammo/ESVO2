@@ -66,7 +66,7 @@ void esvo2_core::core::EventBM::resetParameters(
 void esvo2_core::core::EventBM::createMatchProblem(
   constStampedTimeSurfaceObs * pStampedTsObs,
   StampTransformationMap * pSt_map,
-  std::vector<dvs_msgs::Event *>* pvEventsPtr)
+  std::vector<dvs_msgs::msg::Event *>* pvEventsPtr)
 {
   pStampedTsObs_ = pStampedTsObs;
   pSt_map_ = pSt_map;
@@ -92,7 +92,7 @@ void esvo2_core::core::EventBM::createMatchProblem(
 void esvo2_core::core::EventBM::createMatchProblemTwoFrames(
   constStampedTimeSurfaceObs * pStampedTsObs,
   StampTransformationMap * pSt_map,
-  std::vector<dvs_msgs::Event *>* pvEventsPtr,
+  std::vector<dvs_msgs::msg::Event *>* pvEventsPtr,
   std::vector<EventMatchPair> * vEMP_lr)
 {
   pStampedTsObs_ = pStampedTsObs;
@@ -118,7 +118,7 @@ void esvo2_core::core::EventBM::createMatchProblemTwoFrames(
 
 
 bool esvo2_core::core::EventBM::match_an_event2(
-  const dvs_msgs::Event* pEvent,
+  const dvs_msgs::msg::Event* pEvent,
   std::pair<size_t, size_t>& pDisparityBound,
   esvo2_core::core::EventMatchPair& emPair)
 {
@@ -269,7 +269,7 @@ bool esvo2_core::core::EventBM::match_an_event2(
 }
 
 bool esvo2_core::core::EventBM::match_an_event(
-  dvs_msgs::Event* pEvent,
+  dvs_msgs::msg::Event* pEvent,
   std::pair<size_t, size_t>& pDisparityBound,
   esvo2_core::core::EventMatchPair& emPair)
 {

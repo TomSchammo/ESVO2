@@ -143,7 +143,7 @@ void Visualization::DrawPoint2(
 }
 
 void Visualization::plot_eventMap(
-  std::vector<dvs_msgs::Event*>& vEventPtr,
+  std::vector<dvs_msgs::msg::Event*>& vEventPtr,
   cv::Mat & eventMap,
   size_t row, size_t col)
 {
