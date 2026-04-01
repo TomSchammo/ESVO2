@@ -132,8 +132,7 @@ void esvo2_Tracking::TrackingLoop()
       continue;
     }
 
-    // Reset
-    nh_.getParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+    // Reset - ESVO2_System_Status_ is updated via subscription callback
     if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == WORKING)// This is true when the system is reset from dynamic reconfigure
     {
       reset();
@@ -180,7 +179,10 @@ void esvo2_Tracking::TrackingLoop()
         ets_ = WORKING;
       if(ESVO2_System_Status_ != "WORKING")
       {
-        nh_.setParam("/ESVO2_SYSTEM_STATUS", "WORKING");
+        ESVO2_System_Status_ = "WORKING";
+        auto status_msg = std_msgs::msg::String();
+        status_msg.data = ESVO2_System_Status_;
+        system_status_pub_->publish(status_msg);
         LOG(INFO) << "ESVO2_SYSTEM_STATUS: WORKING";
       }
       
@@ -206,7 +208,10 @@ void esvo2_Tracking::TrackingLoop()
     }
     else
     {
-      nh_.setParam("/ESVO2_SYSTEM_STATUS", "INITIALIZATION");
+      ESVO2_System_Status_ = "INITIALIZATION";
+      auto status_msg = std_msgs::msg::String();
+      status_msg.data = ESVO2_System_Status_;
+      system_status_pub_->publish(status_msg);
       ets_ = IDLE;
     }
     std::ofstream f;
@@ -233,9 +238,9 @@ bool
 esvo2_Tracking::refDataTransferring()
 {
   // load reference info
-  ref_.t_ = ros::Time(refPCMap_.rbegin()->first.toSec());
-  ros::Time t = ros::Time(refPCMap_.rbegin()->first.toSec()-0.001);
-  nh_.getParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+  ref_.t_ = rclcpp::Time(static_cast<int64_t>(refPCMap_.rbegin()->first.seconds() * 1e9));
+  rclcpp::Time t(static_cast<int64_t>((refPCMap_.rbegin()->first.seconds() - 0.001) * 1e9));
+  // ESVO2_System_Status_ is updated via subscription callback
 
   if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
     ref_.tr_.setIdentity();
@@ -278,7 +283,7 @@ esvo2_Tracking::curDataTransferring()
   cur_.t_ = TS_it->first;
   cur_.pTsObs_ = &TS_it->second;
 
-  nh_.getParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+  // ESVO2_System_Status_ is updated via subscription callback
   if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
   {
     cur_.tr_ = ref_.tr_;

@@ -255,8 +255,7 @@ namespace esvo2_core
         changed_frame_rate_ = false;
       }
 
-      // check system status
-      nh_.getParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+      // check system status - ESVO2_System_Status_ is updated via subscription callback
       if (ESVO2_System_Status_ == "TERMINATE")
       {
         LOG(INFO) << "The Mapping node is terminated manually...";
@@ -660,7 +659,7 @@ namespace esvo2_core
         else
         {
           // check if the tracking node is still working normally
-          nh_.getParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+          // ESVO2_System_Status_ is updated via subscription callback
           if (ESVO2_System_Status_ != "WORKING")
             return false;
         }
@@ -1091,7 +1090,9 @@ namespace esvo2_core
     reset_future_ = reset_promise_.get_future();
     mapping_thread_future_ = mapping_thread_promise_.get_future();
     ESVO2_System_Status_ = "INITIALIZATION";
-    nh_.setParam("/ESVO2_SYSTEM_STATUS", ESVO2_System_Status_);
+    auto status_msg = std_msgs::msg::String();
+    status_msg.data = ESVO2_System_Status_;
+    system_status_pub_->publish(status_msg);
     std::thread MappingThread(&esvo2_Mapping::MappingLoop, this,
                               std::move(mapping_thread_promise_), std::move(reset_future_));
     MappingThread.detach();
