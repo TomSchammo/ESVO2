@@ -428,7 +428,7 @@ void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
   }
 }
 
-void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::V_ba_bg& msg)
+void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::msg::VBaBg& msg)
 {
   Eigen::Vector3d g_temp, ba_temp, bg_temp, V_temp;
   double t_temp = msg.head[0];
@@ -437,7 +437,7 @@ void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::V_ba_bg& msg)
     g_temp(i) = msg.g[i];
     ba_temp(i) = msg.ba[i];
     bg_temp(i) = msg.bg[i];
-    V_temp(i) = msg.Vs[i];
+    V_temp(i) = msg.vs[i];
   }
   imu_mutex_.lock();
   imu_data_.G = g_temp;

@@ -9,7 +9,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  msg/V_ba_bg.msg
+  msg/VBaBg.msg
   DEPENDENCIES std_msgs
 )
 
