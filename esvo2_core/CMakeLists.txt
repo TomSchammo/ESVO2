@@ -186,4 +186,19 @@ install(DIRECTORY calib/
   DESTINATION share/${PROJECT_NAME}/calib
 )
 
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install rviz and perspective configs
+install(FILES
+  esvo2_system.rviz
+  esvo2_system_DSEC.rviz
+  esvo2_mvstereo.rviz
+  esvo2_system.perspective
+  esvo2_system_DSEC.perspective
+  esvo2_mvstereo.perspective
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()
