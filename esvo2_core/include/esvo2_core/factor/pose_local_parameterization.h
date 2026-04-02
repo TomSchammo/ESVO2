@@ -9,7 +9,7 @@ namespace esvo2_core
 {
 namespace factor
 {
-class PoseLocalParameterization : public ceres::LocalParameterization
+class PoseLocalParameterization : public ceres::Manifold
 {
 public:
     ~PoseLocalParameterization() {};
@@ -30,7 +30,7 @@ public:
 
     return true;
     } ;
-    bool ComputeJacobian(const double *x, double *jacobian) const
+    bool PlusJacobian(const double *x, double *jacobian) const
     {
         Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> j(jacobian);
         j.topRows<6>().setIdentity();
@@ -38,8 +38,28 @@ public:
 
     return true;
     };
-    int GlobalSize() const { return 7; };
-    int LocalSize() const  { return 6; };
+    bool Minus(const double *y, const double *x, double *y_minus_x) const
+    {
+        Eigen::Map<const Eigen::Vector3d> p_y(y);
+        Eigen::Map<const Eigen::Quaterniond> q_y(y + 3);
+        Eigen::Map<const Eigen::Vector3d> p_x(x);
+        Eigen::Map<const Eigen::Quaterniond> q_x(x + 3);
+        Eigen::Map<Eigen::Matrix<double, 6, 1>> delta(y_minus_x);
+        delta.head<3>() = p_y - p_x;
+        Eigen::Quaterniond q_diff = q_x.inverse() * q_y;
+        delta.tail<3>() = 2.0 * q_diff.vec() / q_diff.w();
+        if (q_diff.w() < 0) { delta.tail<3>() = -delta.tail<3>(); }
+        return true;
+    }
+    bool MinusJacobian(const double *x, double *jacobian) const
+    {
+        Eigen::Map<Eigen::Matrix<double, 6, 7, Eigen::RowMajor>> j(jacobian);
+        j.setZero();
+        j.leftCols<6>().setIdentity();
+        return true;
+    }
+    int AmbientSize() const { return 7; };
+    int TangentSize() const  { return 6; };
 };
 }
 }

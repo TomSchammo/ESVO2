@@ -61,7 +61,7 @@ namespace esvo2_core
         auto ts_obs = (*pTS_history_).find(tt);
         // convert vector to double for ceres
         vector2Double(ts_obs, last_obs, para_Pose, para_SpeedBias, i);
-        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
+        auto *local_parameterization = new PoseLocalParameterization();
         problem.AddParameterBlock(para_Pose[i], 7, local_parameterization);
         if (initVsFlag)
           problem.AddParameterBlock(para_SpeedBias[i], SIZE_SPEEDBIAS);
