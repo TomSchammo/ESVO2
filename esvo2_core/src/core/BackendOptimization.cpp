@@ -28,7 +28,7 @@ namespace esvo2_core
     void BackendOptimization::setProblem(
         std::deque<DepthPointFrame> *pDepthPoints,
         TimeSurfaceHistory *pTS_history,
-        ros::Publisher *pV_ba_bg_pub,
+        rclcpp::Publisher<events_repacking_tool::msg::VBaBg>::SharedPtr pV_ba_bg_pub,
         bool bUSE_IMU)
     {
       pDepthPoints_ = pDepthPoints;
@@ -265,7 +265,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
 
     void BackendOptimization::publishVBaBg(double time_v)
     {
-      events_repacking_tool::VBaBg msg;
+      events_repacking_tool::msg::VBaBg msg;
       Eigen::Vector3d V_temp = Rs[WINDOW_SIZE] * RIC_.transpose() * Vs[WINDOW_SIZE];
       msg.head.push_back(time_v);
       if (Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1)
@@ -277,7 +277,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
         msg.bg.push_back(Bgs[WINDOW_SIZE](i));
         msg.g.push_back(g_optimal(i));
       }
-      (*pV_ba_bg_pub_).publish(msg);
+      pV_ba_bg_pub_->publish(msg);
     }
 
     bool BackendOptimization::CalibrationExRotation(Eigen::Matrix3d &calib_ric_result)
