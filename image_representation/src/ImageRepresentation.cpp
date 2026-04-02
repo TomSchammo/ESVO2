@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <vector>
+#include <fstream>
 
 // #define ESVIO_REPRESENTATION_LOG
 
