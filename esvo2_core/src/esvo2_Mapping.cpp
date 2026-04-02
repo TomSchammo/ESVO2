@@ -1112,9 +1112,8 @@ namespace esvo2_core
     MappingThread.detach();
   }
 
-  void esvo2_Mapping::onlineParameterChangeCallback(DVS_MappingStereoConfig &config, uint32_t level)
-  {
-  }
+  // dynamic_reconfigure not available in ROS2 - callback removed
+  // void esvo2_Mapping::onlineParameterChangeCallback(DVS_MappingStereoConfig &config, uint32_t level)
 
   void esvo2_Mapping::publishMappingResults(
       DepthMap::Ptr depthMapPtr,
