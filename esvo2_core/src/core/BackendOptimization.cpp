@@ -19,7 +19,7 @@ namespace esvo2_core
       // Init Sliding Window imu
       for (int i = 0; i < (WINDOW_SIZE + 1); i++)
         pre_integrations[i] = NULL;
-      
+
       // Init other variables
       initVsFlag = false;
       g_optimal << 0, 9.8, 0;
@@ -83,7 +83,7 @@ namespace esvo2_core
       problem.SetParameterBlockConstant(para_Pose[0]);
       for (int i = 1; i <= WINDOW_SIZE; i++)
         problem.SetParameterBlockConstant(para_Pose[i]);
-      
+
       // options of ceres solver
       ceres::Solver::Options options;
       options.num_threads = 4;
@@ -105,7 +105,7 @@ if (!(Bgs[WINDOW_SIZE].norm() > 1 || Bas[WINDOW_SIZE].norm() > 1))
       LOG(INFO) << "Ba = " << Bas[WINDOW_SIZE].transpose();
       LOG(INFO) << "Bg = " << Bgs[WINDOW_SIZE].transpose();
 }
-      
+
 #endif
 
       // get results from ceres

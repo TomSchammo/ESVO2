@@ -214,7 +214,7 @@ namespace image_representation
     std::lock_guard<std::mutex> lock(data_mutex_);
     if (!bSensorInitialized_ || !bCamInfoAvailable_)
       return;
-    
+
     //for AA generation
     cv::Mat filiter_image = cv::Mat::zeros(sensor_size_, CV_64F);
     cv::Mat rectangle_image = cv::Mat::zeros(cv::Size(80, 80), CV_8U);
@@ -263,7 +263,7 @@ namespace image_representation
 
         // generate OS-TS
         cv::Mat TS_img_blur;
-        cv::Mat OS_TS = TS_img.clone(); 
+        cv::Mat OS_TS = TS_img.clone();
         cv::blur(TS_img, TS_img_blur, cv::Size(blur_size_, blur_size_));
         cv::Mat mask = (TS_img == 0);
         TS_img_blur.copyTo(OS_TS, mask);

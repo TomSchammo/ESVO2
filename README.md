@@ -1,6 +1,6 @@
 # ESVO2: Direct Visual-Inertial Odometry with Stereo Event Cameras
 
-This repository delivers **ESVO2**, an event-based stereo visual-inertial odometry system built on top of our previous work ESVO [3]. It is a direct method that solves the tracking and mapping problems in parallel by leveraging the spatio-temporal coherence in the stereo event data. It alleviates ESVO's high computational complexity in mapping and address its degeneracy in camera pose tracking. To the best of our knowledge, the system is the first published work that achieves real-time performance using a standard CPU on event cameras of VGA pixel resolution. 
+This repository delivers **ESVO2**, an event-based stereo visual-inertial odometry system built on top of our previous work ESVO [3]. It is a direct method that solves the tracking and mapping problems in parallel by leveraging the spatio-temporal coherence in the stereo event data. It alleviates ESVO's high computational complexity in mapping and address its degeneracy in camera pose tracking. To the best of our knowledge, the system is the first published work that achieves real-time performance using a standard CPU on event cameras of VGA pixel resolution.
 
 ### **Video**
 
@@ -24,8 +24,8 @@ We have tested ESVO2 on machines with the following configurations
 
 ## 1.1 Driver Installation
 
-To work with event cameras, especially for the Dynamic Vision Sensors (DVS/DAVIS), you need to install some drivers. 
-Please follow the instructions (steps 1-3) at [rpg_dvs_ros](https://github.com/uzh-rpg/rpg_dvs_ros) before moving on to the next step. 
+To work with event cameras, especially for the Dynamic Vision Sensors (DVS/DAVIS), you need to install some drivers.
+Please follow the instructions (steps 1-3) at [rpg_dvs_ros](https://github.com/uzh-rpg/rpg_dvs_ros) before moving on to the next step.
 Note that you need to replace the name of the ROS distribution with the one installed on your computer.
 
 We use catkin tools to build the code. You should have it installed during the driver installation.
@@ -46,7 +46,7 @@ You should have created a catkin workspace in Section 1.1. If not, please go bac
 **Clone this repository** into the `src` folder of your catkin workspace.
 
 ```shell
-cd ~/catkin_ws/src 
+cd ~/catkin_ws/src
 git clone https://github.com/NAIL-HNU/ESVO2.git
 ```
 
@@ -60,7 +60,7 @@ git clone https://github.com/catkin/catkin_simple.git
 git clone https://github.com/uzh-rpg/rpg_dvs_ros.git
 git clone https://github.com/ethz-asl/gflags_catkin.git
 git clone https://github.com/ethz-asl/glog_catkin.git
-git clone https://github.com/ethz-asl/minkindr.git 
+git clone https://github.com/ethz-asl/minkindr.git
 git clone https://github.com/ethz-asl/eigen_catkin.git
 git clone https://github.com/ethz-asl/eigen_checks.git
 git clone https://github.com/ethz-asl/minkindr_ros.git
@@ -72,7 +72,7 @@ If you don't have a yaml library, please install one. But if you already have a 
 
 ```shell
 # if you don't have a yaml
-cd ~/catkin_ws/src 
+cd ~/catkin_ws/src
 git clone https://github.com/jbeder/yaml-cpp.git
 cd yaml-cpp
 mkdir build && cd build && cmake -DYAML_BUILD_SHARED_LIBS=ON ..
@@ -114,8 +114,8 @@ rosbag play xxx.bag --clock -r 0.5
 
 Since the rosbag with event and IMU data is not provided in the datasets, we repackage the required data as the input for the system.
 
-You can access most of the rosbag files we repacked through the [download link](https://pan.baidu.com/s/1mhuejFr_hL8GbZDeyCiWmg?pwd=m6by). 
-The repacked data for each dataset is stored in folders named after the dataset. 
+You can access most of the rosbag files we repacked through the [download link](https://pan.baidu.com/s/1mhuejFr_hL8GbZDeyCiWmg?pwd=m6by).
+The repacked data for each dataset is stored in folders named after the dataset.
 Our own recorded datasets are stored in the "Ours" folder, where "hnu_campus" corresponds to the data shown in Fig. 1 of the ESVO2 paper, and "hnu_peachlake" corresponds to the data shown in Fig. 12 of the paper.
 In addition, if you need to repack packages from h5 file, please use the code from https://github.com/tub-rip/events_h52bag.
 
@@ -135,7 +135,7 @@ rosbag play xxx.bag --clock
 
 The trajectories will be saved in the path in `/cfg/tracking_xxx.yaml`.
 
-Please note that our event representations include three types: Time Surface (TS), Blurred TS, and Offset-free TS, whose differences are shown in Figure 6 of the paper. 
+Please note that our event representations include three types: Time Surface (TS), Blurred TS, and Offset-free TS, whose differences are shown in Figure 6 of the paper.
 Meanwhile, we also demonstrate their distinctions on a larger scale in the figure below.
 
 <img src="TS_bluredTS_OSTS.png" alt="TS_bluredTS_OSTS"/>
@@ -148,8 +148,8 @@ The original ESVO2 trajectories and GT poses for various sequences on the 5 data
 
 ## Image Representation
 
-- `use_sim_time `: Set `True` for all offline experiments, which use 
-  simulation time. 
+- `use_sim_time `: Set `True` for all offline experiments, which use
+  simulation time.
 
 - `use_stereo_cam `: Set `True` for distortion correction.
 - `representation_mode `: Set `2` to generate AA and TS in paralle.
@@ -188,7 +188,7 @@ The original ESVO2 trajectories and GT poses for various sequences on the 5 data
 - `residual_vis_threshold` : Threshold on the temporal residual of the inverse depth estimates.
 - `stdVar_vis_threshold` : Threshold on the uncertainty of the inverse depth estimates.
 - `age_vis_threshold` : Threshold on the number of fusion operations (inverse depth estimates).
-- `age_max_range` : Upper bound for the age (used for visualization only). 
+- `age_max_range` : Upper bound for the age (used for visualization only).
 - `fusion_radius` : Determines the number of pixels that are involved in the depth fusion.
 - `FUSION_STRATEGY` : Fusion strategy. (use CONST_FRAMES or CONST_POINTS)
 - `maxNumFusionFrames` : Determines how many frames (observations) are fused to the current time. (used in CONST_FRAMES mode)
@@ -244,9 +244,9 @@ The original ESVO2 trajectories and GT poses for various sequences on the 5 data
 
 # 5. Notes for Good Results
 
-- Real-time performance is witnessed on a desktop with an Intel Core i7-14700k CPU. 
+- Real-time performance is witnessed on a desktop with an Intel Core i7-14700k CPU.
 
-* To get real-time performance, you need a powerful PC with modern CPUs which supports at least 6 threads. 
+* To get real-time performance, you need a powerful PC with modern CPUs which supports at least 6 threads.
   Remember to keep you computer cool!
 
 * The mapping and tracking are loosely coupled, which indicates that the failure of anyone will lead to bad results of the other, and hence of the whole system.

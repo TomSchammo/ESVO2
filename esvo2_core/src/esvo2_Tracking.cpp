@@ -187,7 +187,7 @@ void esvo2_Tracking::TrackingLoop()
         system_status_pub_->publish(status_msg);
         LOG(INFO) << "ESVO2_SYSTEM_STATUS: WORKING";
       }
-      
+
       // TicToc t_coarse;
       if(rpType_ == REG_NUMERICAL)
         rpSolver_.solve_numerical();
@@ -320,11 +320,11 @@ esvo2_Tracking::curDataTransferring()
           }
           last_t_ = last_t_ / qprevious_ts_.size();
         }
-        
-        // If the predicted position change is significantly different from the previous displacement due to potentially unstable velocity estimates, 
+
+        // If the predicted position change is significantly different from the previous displacement due to potentially unstable velocity estimates,
         // use the previous displacement as the initial value for the next optimization.
         if(initVsFlag && (imu_data_.t_v_last_mapping.second * imu_data_.sum_dt - last_t_).norm()/last_t_.norm() < 0.1)
-          T_world_cur_.block(0, 3, 3, 1) += R_b_c_.transpose() * Imu_t + (imu_data_.t_v_last_mapping.second * imu_data_.sum_dt); 
+          T_world_cur_.block(0, 3, 3, 1) += R_b_c_.transpose() * Imu_t + (imu_data_.t_v_last_mapping.second * imu_data_.sum_dt);
         else
           T_world_cur_.block(0, 3, 3, 1) += R_b_c_.transpose() * Imu_t + last_t_;
       }
@@ -334,7 +334,7 @@ esvo2_Tracking::curDataTransferring()
       }
 
       T_world_cur_.block(0, 0, 3, 3) =  R_w_c * R_b_c_* q.toRotationMatrix() * R_b_c_.inverse();
-    } 
+    }
     Eigen::Matrix3d R_w_c = T_world_cur_.block(0, 0, 3, 3);
     T_world_cur_.block(0, 0, 3, 3) = fixRotationMatrix(R_w_c);
     cur_.tr_ = Transformation(T_world_cur_);
@@ -361,7 +361,7 @@ bool esvo2_Tracking::curImuTransferring()
     }
     imu_mutex_.unlock();
   }
-  
+
   Eigen::Vector3d delta_p = imu_data_.delta_p;
   Eigen::Quaterniond delta_q = imu_data_.delta_q;
 
@@ -388,7 +388,7 @@ void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
   std::lock_guard<std::mutex> lock(imu_mutex_);
   Eigen::Vector3d acc, gyr;
   if(imu_data_.dt_buf.size() == 0){
-  
+
     acc[0] = msg->linear_acceleration.x;
     acc[1] = msg->linear_acceleration.y;
     acc[2] = msg->linear_acceleration.z;
@@ -499,7 +499,7 @@ esvo2_Tracking::timeSurface_NegaTS_Callback(
   const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_dx,
   const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_dy)
 {
-  
+
   cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_negative, cv_ptr_dx, cv_ptr_dy;
   try
   {
@@ -622,7 +622,7 @@ void esvo2_Tracking::publishPose(const rclcpp::Time &t, Transformation &tr)
 void esvo2_Tracking::publishPath(const rclcpp::Time& t, Transformation& tr)
 {
   geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
-  
+
   ps_ptr->header.stamp = t;
   ps_ptr->header.frame_id = world_frame_id_;
   ps_ptr->pose.position.x = tr.getPosition()(0);
@@ -685,11 +685,11 @@ void esvo2_Tracking::renameOldTraj()
 {
   string ori_name = resultPath_ + "stamped_traj_estimate_ours.txt";
   string new_name = resultPath_ + "traj_ours_old.txt";
-  if(std::rename(ori_name.c_str(), new_name.c_str()) == 0) 
+  if(std::rename(ori_name.c_str(), new_name.c_str()) == 0)
   {
     LOG(INFO) << "\33[32m" << "File renamed successfully." << "\33[0m";
-  } 
-  else 
+  }
+  else
   {
     LOG(INFO) << "\33[33m" << "Failed to rename the file." << "\33[0m";
   }
