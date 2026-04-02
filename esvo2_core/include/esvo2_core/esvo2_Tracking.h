@@ -146,7 +146,7 @@ namespace esvo2_core
     size_t TS_id_;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-    std::map<rclcpp::Time, pcl::PointCloud<pcl::PointXYZRGBL>::Ptr, RclcppTimeCmp> refPCMap_;
+    std::map<rclcpp::Time, pcl::PointCloud<pcl::PointXYZRGBL>::Ptr, tools::RclcppTimeCmp> refPCMap_;
     RefFrame ref_;
     CurFrame cur_;
 

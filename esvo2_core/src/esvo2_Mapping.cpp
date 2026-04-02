@@ -247,13 +247,13 @@ namespace esvo2_core
       std::promise<void> prom_mapping,
       std::future<void> future_reset)
   {
-    rclcpp::Rate r(mapping_rate_hz_);
+    auto r = std::make_unique<rclcpp::Rate>(mapping_rate_hz_);
     while (rclcpp::ok())
     {
       // reset mapping rate
       if (changed_frame_rate_)
       {
-        r = rclcpp::Rate(mapping_rate_hz_);
+        r = std::make_unique<rclcpp::Rate>(mapping_rate_hz_);
         changed_frame_rate_ = false;
       }
 
@@ -289,7 +289,7 @@ namespace esvo2_core
         // To check if the most current TS observation has been loaded by dataTransferring()
         if (TS_obs_ptr_->second.isEmpty())
         {
-          r.sleep();
+          r->sleep();
           continue;
         }
 
@@ -319,7 +319,7 @@ namespace esvo2_core
           return;
         }
       }
-      r.sleep();
+      r->sleep();
     }
   }
 
@@ -507,7 +507,7 @@ namespace esvo2_core
     TicToc t_optimize;
     if (dqvDepthPoints_.size() >= WINDOW_SIZE + 1 && bUSE_IMU_ == true)
     {
-      BackendOpt_.setProblem(&dqvDepthPoints_, &TS_history_, &V_ba_bg_pub_, bUSE_IMU_);
+      BackendOpt_.setProblem(&dqvDepthPoints_, &TS_history_, V_ba_bg_pub_, bUSE_IMU_);
       BackendOpt_.sloveProblem();
     }
     double time_optimize = t_optimize.toc();
@@ -846,7 +846,7 @@ namespace esvo2_core
   }
 
   void esvo2_Mapping::eventsCallback(
-      const dvs_msgs::msg::EventArray::ConstPtr &msg,
+      const dvs_msgs::msg::EventArray::SharedPtr msg,
       EventQueue &EQ)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
@@ -1049,7 +1049,7 @@ namespace esvo2_core
     clearEventQueue(events_left_);
   }
 
-  void esvo2_Mapping::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr &msg)
+  void esvo2_Mapping::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
   {
     double t = rclcpp::Time(msg->header.stamp).seconds();
     double dx = msg->linear_acceleration.x;
@@ -1153,7 +1153,7 @@ namespace esvo2_core
       Transformation &tr,
       rclcpp::Time &t)
   {
-    sensor_msgs::PointCloud2::Ptr pc_to_publish(new sensor_msgs::PointCloud2);
+    auto pc_to_publish = std::make_shared<sensor_msgs::msg::PointCloud2>();
     Eigen::Matrix<double, 4, 4> T_world_result = tr.getTransformationMatrix();
 
     pc_color_->clear();
@@ -1202,13 +1202,13 @@ namespace esvo2_core
     {
       pcl::toROSMsg(*pc_color_, *pc_to_publish);
       pc_to_publish->header.stamp = t;
-      pc_pub_.publish(pc_to_publish);
+      pc_pub_->publish(*pc_to_publish);
     }
     if (!pc_filtered_->empty())
     {
       pcl::toROSMsg(*pc_filtered_, *pc_to_publish);
       pc_to_publish->header.stamp = t;
-      pc_filtered_pub_.publish(pc_to_publish);
+      pc_filtered_pub_->publish(*pc_to_publish);
     }
 
     // publish global pointcloud
@@ -1234,7 +1234,7 @@ namespace esvo2_core
         // publish point cloud
         pcl::toROSMsg(*pc_global_, *pc_to_publish);
         pc_to_publish->header.stamp = t;
-        gpc_pub_.publish(pc_to_publish);
+        gpc_pub_->publish(*pc_to_publish);
         t_last_pub_pc_ = t.seconds();
       }
     }
@@ -1249,9 +1249,9 @@ namespace esvo2_core
     if (pub.getNumSubscribers() == 0)
       return;
 
-    std_msgs::Header header;
+    std_msgs::msg::Header header;
     header.stamp = t;
-    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, encoding.c_str(), image).toImageMsg();
+    sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(header, encoding.c_str(), image).toImageMsg();
     pub.publish(msg);
   }
 

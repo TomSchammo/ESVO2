@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
   bag_src.open(src_bag_path.c_str(), rosbag::bagmode::Read);
   bag_dst.open(dst_bag_path.c_str(), rosbag::bagmode::Write);
 
-  sensor_msgs::Imu imu_buff;
+  sensor_msgs::msg::Imu imu_buff;
 
   if(!bag_src.isOpen())
   {
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
   rosbag::View view(bag_src2, rosbag::TopicQuery("/imu/data"));
   for(rosbag::MessageInstance const m: view)
   {
-    sensor_msgs::Imu::ConstPtr msg = m.instantiate<sensor_msgs::Imu>();
+    sensor_msgs::msg::Imu::ConstPtr msg = m.instantiate<sensor_msgs::msg::Imu>();
     if(rclcpp::Time(msg->header.stamp).seconds() < start_time.seconds() || rclcpp::Time(msg->header.stamp).seconds() > end_time.seconds())
       continue;
     // the topic name in the output bag file

@@ -348,7 +348,7 @@ namespace image_representation
       vEvents_.clear();
   }
 
-  void ImageRepresentation::eventsCallback(const dvs_msgs::msg::EventArray::ConstPtr &msg)
+  void ImageRepresentation::eventsCallback(const dvs_msgs::msg::EventArray::SharedPtr msg)
   {
     TicToc t;
     std::lock_guard<std::mutex> lock(data_mutex_);

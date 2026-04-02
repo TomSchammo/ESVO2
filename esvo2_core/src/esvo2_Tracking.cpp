@@ -383,7 +383,7 @@ void esvo2_Tracking::reset()
 
 
 /********************** Callback functions *****************************/
-void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
+void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(imu_mutex_);
   Eigen::Vector3d acc, gyr;
@@ -428,16 +428,16 @@ void esvo2_Tracking::refImuCallback(const sensor_msgs::msg::Imu::SharedPtr& msg)
   }
 }
 
-void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::msg::VBaBg& msg)
+void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::msg::VBaBg::SharedPtr msg)
 {
   Eigen::Vector3d g_temp, ba_temp, bg_temp, V_temp;
-  double t_temp = msg.head[0];
+  double t_temp = msg->head[0];
   for(int i = 0; i < 3; i++)
   {
-    g_temp(i) = msg.g[i];
-    ba_temp(i) = msg.ba[i];
-    bg_temp(i) = msg.bg[i];
-    V_temp(i) = msg.vs[i];
+    g_temp(i) = msg->g[i];
+    ba_temp(i) = msg->ba[i];
+    bg_temp(i) = msg->bg[i];
+    V_temp(i) = msg->vs[i];
   }
   imu_mutex_.lock();
   imu_data_.G = g_temp;
@@ -448,7 +448,7 @@ void esvo2_Tracking::VBaBgCallback(const events_repacking_tool::msg::VBaBg& msg)
   initVsFlag = true;
 }
 
-void esvo2_Tracking::refMapCallback(const sensor_msgs::PointCloud2::ConstPtr &msg)
+void esvo2_Tracking::refMapCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
   pcl::PCLPointCloud2 pcl_pc;
@@ -464,7 +464,7 @@ void esvo2_Tracking::refMapCallback(const sensor_msgs::PointCloud2::ConstPtr &ms
 }
 
 void esvo2_Tracking::eventsCallback(
-  const dvs_msgs::msg::EventArray::ConstPtr &msg)
+  const dvs_msgs::msg::EventArray::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
   // add new ones and remove old ones
@@ -585,18 +585,18 @@ esvo2_Tracking::getPoseAt(
 /************ publish results *******************/
 void esvo2_Tracking::publishPose(const rclcpp::Time &t, Transformation &tr)
 {
-  geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
+  geometry_msgs::msg::PoseStamped ps;
 
-  ps_ptr->header.stamp = t;
-  ps_ptr->header.frame_id = world_frame_id_;
-  ps_ptr->pose.position.x = tr.getPosition()(0);
-  ps_ptr->pose.position.y = tr.getPosition()(1);
-  ps_ptr->pose.position.z = tr.getPosition()(2);
-  ps_ptr->pose.orientation.x = tr.getRotation().x();
-  ps_ptr->pose.orientation.y = tr.getRotation().y();
-  ps_ptr->pose.orientation.z = tr.getRotation().z();
-  ps_ptr->pose.orientation.w = tr.getRotation().w();
-  pose_pub_.publish(ps_ptr);
+  ps.header.stamp = t;
+  ps.header.frame_id = world_frame_id_;
+  ps.pose.position.x = tr.getPosition()(0);
+  ps.pose.position.y = tr.getPosition()(1);
+  ps.pose.position.z = tr.getPosition()(2);
+  ps.pose.orientation.x = tr.getRotation().x();
+  ps.pose.orientation.y = tr.getRotation().y();
+  ps.pose.orientation.z = tr.getRotation().z();
+  ps.pose.orientation.w = tr.getRotation().w();
+  pose_pub_->publish(ps);
   if(!resultPath_.empty())
   {
     std::ofstream f;
@@ -606,36 +606,36 @@ void esvo2_Tracking::publishPose(const rclcpp::Time &t, Transformation &tr)
     Eigen::Vector3d twc_result;
     f.setf(std::ios::fixed, std::ios::floatfield);
     f.precision(9);
-    f << t << " ";
+    f << t.seconds() << " ";
     f.precision(5);
-    f << ps_ptr->pose.position.x << " "
-    << ps_ptr->pose.position.y << " "
-    << ps_ptr->pose.position.z << " "
-    << ps_ptr->pose.orientation.x << " "
-    << ps_ptr->pose.orientation.y << " "
-    << ps_ptr->pose.orientation.z << " "
-    << ps_ptr->pose.orientation.w << endl;
+    f << ps.pose.position.x << " "
+    << ps.pose.position.y << " "
+    << ps.pose.position.z << " "
+    << ps.pose.orientation.x << " "
+    << ps.pose.orientation.y << " "
+    << ps.pose.orientation.z << " "
+    << ps.pose.orientation.w << endl;
     f.close();
   }
 }
 
 void esvo2_Tracking::publishPath(const rclcpp::Time& t, Transformation& tr)
 {
-  geometry_msgs::msg::PoseStampedPtr ps_ptr(new geometry_msgs::msg::PoseStamped());
+  geometry_msgs::msg::PoseStamped ps;
 
-  ps_ptr->header.stamp = t;
-  ps_ptr->header.frame_id = world_frame_id_;
-  ps_ptr->pose.position.x = tr.getPosition()(0);
-  ps_ptr->pose.position.y = tr.getPosition()(1);
-  ps_ptr->pose.position.z = tr.getPosition()(2);
-  ps_ptr->pose.orientation.x = tr.getRotation().x();
-  ps_ptr->pose.orientation.y = tr.getRotation().y();
-  ps_ptr->pose.orientation.z = tr.getRotation().z();
-  ps_ptr->pose.orientation.w = tr.getRotation().w();
+  ps.header.stamp = t;
+  ps.header.frame_id = world_frame_id_;
+  ps.pose.position.x = tr.getPosition()(0);
+  ps.pose.position.y = tr.getPosition()(1);
+  ps.pose.position.z = tr.getPosition()(2);
+  ps.pose.orientation.x = tr.getRotation().x();
+  ps.pose.orientation.y = tr.getRotation().y();
+  ps.pose.orientation.z = tr.getRotation().z();
+  ps.pose.orientation.w = tr.getRotation().w();
   path_.header.stamp = t;
   path_.header.frame_id = world_frame_id_;
-  path_.poses.push_back(*ps_ptr);
-  path_pub_.publish(path_);
+  path_.poses.push_back(ps);
+  path_pub_->publish(path_);
 }
 
 void
@@ -695,7 +695,7 @@ void esvo2_Tracking::renameOldTraj()
   }
 }
 
-void esvo2_Tracking::groundTruthCallback(const geometry_msgs::msg::PoseStampedConstPtr &msg)
+void esvo2_Tracking::groundTruthCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   std::ofstream  f;
   f.open("/home/njk/output/ESVO2/stamped_groundtruth.txt", std::ofstream::app);
