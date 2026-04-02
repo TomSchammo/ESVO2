@@ -41,6 +41,12 @@ sudo apt-get install libcaer-dev
 
 ## 1.2 Dependencies and ESVO2 Installation
 
+Ceres is required, install is by running
+
+```shell
+sudo apt install libceres-dev
+```
+
 You should have created a catkin workspace in Section 1.1. If not, please go back and create one.
 
 **Clone this repository** into the `src` folder of your catkin workspace.
