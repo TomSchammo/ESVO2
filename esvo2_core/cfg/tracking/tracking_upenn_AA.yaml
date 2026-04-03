@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     invDepth_min_range: 0.16
-    invDepth_max_range: 1
+    invDepth_max_range: 1.0
     TS_HISTORY_LENGTH: 100
     REF_HISTORY_LENGTH: 10
     tracking_rate_hz: 100
@@ -12,7 +12,7 @@
     BATCH_SIZE: 300
     MAX_ITERATION: 10
     LSnorm: Huber  # Huber #L2, Huber
-    huber_threshold: 50  # 50
+    huber_threshold: 50.0  # 50
     MIN_NUM_EVENTS: 1000
     RegProblemType: 1  # 0 numerical, 1 analytical
     SAVE_TRAJECTORY: true

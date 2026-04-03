@@ -12,7 +12,7 @@
     BATCH_SIZE: 300
     MAX_ITERATION: 10
     LSnorm: Huber  # Huber #L2, Huber
-    huber_threshold: 50  # 50
+    huber_threshold: 50.0  # 50
     MIN_NUM_EVENTS: 1000
     RegProblemType: 1  # 0 numerical, 1 analytical
     SAVE_TRAJECTORY: true

@@ -5,7 +5,7 @@
     representation_mode: 2
     # Linear_TS //0
     # AA2(Local decay accumulation) //1
-    decay_ms: 20
+    decay_ms: 20.0
     median_blur_kernel_size: 1
     blur_size: 7  # 15 for 1Mpx
     use_sim_time: true

@@ -84,7 +84,7 @@ namespace esvo2_core
     cost_vis_threshold_ = pow(residual_vis_threshold_, 2) * patch_area_;
     cost_vis_threshold_ln_ = pow(residual_vis_threshold_ln_, 2) * patch_area_;
     stdVar_vis_threshold_ = tools::param(this, "stdVar_vis_threshold", 0.005);
-    stdVar_vis_threshold_ln_ = tools::param(this, "stdVar_vis_threshold_ln", 1);
+    stdVar_vis_threshold_ln_ = tools::param(this, "stdVar_vis_threshold_ln", 1.0);
     age_max_range_ = tools::param(this, "age_max_range", 5);
     age_vis_threshold_ = tools::param(this, "age_vis_threshold", 0);
     fusion_radius_ = tools::param(this, "fusion_radius", 0);
@@ -104,7 +104,7 @@ namespace esvo2_core
 
     // visualization parameters
     bVisualizeGlobalPC_ = tools::param(this, "bVisualizeGlobalPC", false);
-    visualizeGPC_interval_ = tools::param(this, "visualizeGPC_interval", 3);
+    visualizeGPC_interval_ = tools::param(this, "visualizeGPC_interval", 3.0);
     visualize_range_ = tools::param(this, "visualize_range", 2.5);
     numAddedPC_threshold_ = tools::param(this, "NumGPC_added_per_refresh", 1000);
 

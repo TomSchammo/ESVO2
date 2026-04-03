@@ -2,7 +2,7 @@
   ros__parameters:
     # Configuration for depth estimation
     invDepth_min_range: 0.2
-    invDepth_max_range: 2
+    invDepth_max_range: 2.0
     residual_vis_threshold: 30  # 20 #30 #20 #20
     residual_vis_threshold_ln: 30
     stdVar_vis_threshold: 0.1  # 0.1 #0.2
@@ -55,7 +55,7 @@
     RegularizationMinNeighbours: 8
     RegularizationMinCloseNeighbours: 8
     bVisualizeGlobalPC: true
-    visualizeGPC_interval: 2  # 2[second]
+    visualizeGPC_interval: 2.0  # 2[second]
     NumGPC_added_per_refresh: 3000
     visualize_range: 5.0
 
