@@ -8,7 +8,6 @@
     decay_ms: 20.0
     median_blur_kernel_size: 1
     blur_size: 7  # 15 for 1Mpx
-    use_sim_time: true
     is_left: true
     x_patches: 8
     y_patches: 6

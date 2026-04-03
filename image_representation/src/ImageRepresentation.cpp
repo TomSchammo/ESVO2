@@ -39,9 +39,8 @@ namespace image_representation
       image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_");
     }
 
-    // Declare and get parameters
-    this->declare_parameter<bool>("use_sim_time", true);
-    this->get_parameter("use_sim_time", bUse_Sim_Time_);
+    // Get use_sim_time (automatically declared by ROS 2)
+    bUse_Sim_Time_ = this->get_parameter("use_sim_time").as_bool();
 
     // system variables
     int representation_mode;
