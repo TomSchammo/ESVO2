@@ -4,3 +4,6 @@
 [submodule "dvs_msgs"]
 	path = dvs_msgs
 	url = https://github.com/ros-event-camera/dvs_msgs.git
+[submodule "metavision_bridge"]
+	path = metavision_bridge
+	url = https://github.com/TomSchammo/metavision_bridge
