@@ -7,6 +7,7 @@ import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -21,6 +22,12 @@ def generate_launch_description():
         'calib_dir',
         default_value=os.path.join(esvo2_core_share, 'calib', 'tum_DoF'),
         description='Calibration directory path'
+    )
+
+    launch_rviz_arg = DeclareLaunchArgument(
+        'launch_rviz',
+        default_value='true',
+        description='Whether to launch RViz visualization (set to false for headless mode)'
     )
 
     # Image representation parameters
@@ -141,12 +148,14 @@ def generate_launch_description():
         name='rviz2',
         arguments=['-d', rviz_config],
         parameters=[{'use_sim_time': True}],
-        output='screen'
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('launch_rviz'))
     )
 
     return LaunchDescription([
         # Arguments
         calib_dir_arg,
+        launch_rviz_arg,
         # Nodes
         image_representation_left,
         image_representation_right,
