@@ -29,7 +29,7 @@ esvo2_Tracking::esvo2_Tracking()
     tools::param(this, "MAX_ITERATION", 10))),
   rpType_((RegProblemType)((size_t)tools::param(this, "RegProblemType", 0))),
   rpSolver_(camSysPtr_, rpConfigPtr_, rpType_, NUM_THREAD_TRACKING),
-  ESVO2_System_Status_("INITIALIZATION"),
+  ESVO2_System_Status_(SystemStatus::INITIALIZATION),
   imu_data_(Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), g_optimal),
   ets_(IDLE)
 {
@@ -51,7 +51,8 @@ esvo2_Tracking::esvo2_Tracking()
   system_status_sub_ = create_subscription<std_msgs::msg::String>(
     "/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local(),
     [this](const std_msgs::msg::String::SharedPtr msg) {
-      ESVO2_System_Status_ = msg->data;
+      if (auto status = system_status_from_string(msg->data))
+        ESVO2_System_Status_.store(*status);
     });
 
   // get extrinsic parameters
@@ -135,13 +136,13 @@ void esvo2_Tracking::TrackingLoop()
     }
 
     // Reset - ESVO2_System_Status_ is updated via subscription callback
-    if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == WORKING)// This is true when the system is reset from dynamic reconfigure
+    if(ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION && ets_ == WORKING)// This is true when the system is reset from dynamic reconfigure
     {
       reset();
       r.sleep();
       continue;
     }
-    if(ESVO2_System_Status_ == "TERMINATE")
+    if(ESVO2_System_Status_.load() == SystemStatus::TERMINATE)
     {
       LOG(INFO) << "The tracking node is terminated manually...";
       break;
@@ -179,11 +180,11 @@ void esvo2_Tracking::TrackingLoop()
     {
       if(ets_ == IDLE)
         ets_ = WORKING;
-      if(ESVO2_System_Status_ != "WORKING")
+      if(ESVO2_System_Status_.load() != SystemStatus::WORKING)
       {
-        ESVO2_System_Status_ = "WORKING";
+        ESVO2_System_Status_.store(SystemStatus::WORKING);
         auto status_msg = std_msgs::msg::String();
-        status_msg.data = ESVO2_System_Status_;
+        status_msg.data = to_string(ESVO2_System_Status_.load());
         system_status_pub_->publish(status_msg);
         LOG(INFO) << "ESVO2_SYSTEM_STATUS: WORKING";
       }
@@ -210,9 +211,9 @@ void esvo2_Tracking::TrackingLoop()
     }
     else
     {
-      ESVO2_System_Status_ = "INITIALIZATION";
+      ESVO2_System_Status_.store(SystemStatus::INITIALIZATION);
       auto status_msg = std_msgs::msg::String();
-      status_msg.data = ESVO2_System_Status_;
+      status_msg.data = to_string(ESVO2_System_Status_.load());
       system_status_pub_->publish(status_msg);
       ets_ = IDLE;
     }
@@ -244,13 +245,14 @@ esvo2_Tracking::refDataTransferring()
   rclcpp::Time t(static_cast<int64_t>((refPCMap_.rbegin()->first.seconds() - 0.001) * 1e9));
   // ESVO2_System_Status_ is updated via subscription callback
 
-  if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
+  if(ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION && ets_ == IDLE)
     ref_.tr_.setIdentity();
-  if(ESVO2_System_Status_ == "WORKING" || (ESVO2_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
+  auto status = ESVO2_System_Status_.load();
+  if(status == SystemStatus::WORKING || (status == SystemStatus::INITIALIZATION && ets_ == WORKING))
   {
     if(!getPoseAt(t, ref_.tr_, dvs_frame_id_))
     {
-      LOG(INFO) << "ESVO2_System_Status_: " << ESVO2_System_Status_ << ", ref_.t_: " << ref_.t_.nanoseconds();
+      LOG(INFO) << "ESVO2_System_Status_: " << to_string(ESVO2_System_Status_.load()) << ", ref_.t_: " << ref_.t_.nanoseconds();
       LOG(INFO) << "Logic error ! There must be a pose for the given timestamp, because mapping has been finished.";
       // exit(-1);
       return false;
@@ -286,11 +288,12 @@ esvo2_Tracking::curDataTransferring()
   cur_.pTsObs_ = &TS_it->second;
 
   // ESVO2_System_Status_ is updated via subscription callback
-  if(ESVO2_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
+  if(ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION && ets_ == IDLE)
   {
     cur_.tr_ = ref_.tr_;
   }
-  if(ESVO2_System_Status_ == "WORKING" || (ESVO2_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
+  auto status = ESVO2_System_Status_.load();
+  if(status == SystemStatus::WORKING || (status == SystemStatus::INITIALIZATION && ets_ == WORKING))
   {
     curImuTransferring();
     // if use imu, the pose of the current frame is updated in the imu preintegration.

@@ -160,16 +160,17 @@ namespace esvo2_core
     BM_min_disparity_ = minDisparity;
     BM_max_disparity_ = maxDisparity;
     // system status - use shared topic for inter-node coordination (ROS2 parameters are node-local)
-    ESVO2_System_Status_ = "INITIALIZATION";
+    ESVO2_System_Status_.store(SystemStatus::INITIALIZATION);
     system_status_pub_ = create_publisher<std_msgs::msg::String>("/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local());
     system_status_sub_ = create_subscription<std_msgs::msg::String>(
       "/ESVO2_SYSTEM_STATUS", rclcpp::QoS(1).transient_local(),
       [this](const std_msgs::msg::String::SharedPtr msg) {
-        ESVO2_System_Status_ = msg->data;
+        if (auto status = system_status_from_string(msg->data))
+          ESVO2_System_Status_.store(*status);
       });
     // Publish initial status
     auto status_msg = std_msgs::msg::String();
-    status_msg.data = ESVO2_System_Status_;
+    status_msg.data = to_string(ESVO2_System_Status_.load());
     system_status_pub_->publish(status_msg);
 
     // callback functions
@@ -258,7 +259,7 @@ namespace esvo2_core
       }
 
       // check system status - ESVO2_System_Status_ is updated via subscription callback
-      if (ESVO2_System_Status_ == "TERMINATE")
+      if (ESVO2_System_Status_.load() == SystemStatus::TERMINATE)
       {
         LOG(INFO) << "The Mapping node is terminated manually...";
         break;
@@ -294,7 +295,8 @@ namespace esvo2_core
         }
 
         // Do initialization (State Machine)
-        if (ESVO2_System_Status_ == "INITIALIZATION" || ESVO2_System_Status_ == "RESET")
+        auto status = ESVO2_System_Status_.load();
+        if (status == SystemStatus::INITIALIZATION || status == SystemStatus::RESET)
         {
           if (InitializationAtTime(TS_obs_ptr_->first))
           {
@@ -306,7 +308,7 @@ namespace esvo2_core
         double Data_transfer = total_mapping.toc();
 
         // Do mapping
-        if (ESVO2_System_Status_ == "WORKING")
+        if (ESVO2_System_Status_.load() == SystemStatus::WORKING)
           MappingAtTime(TS_obs_ptr_->first);
 
         BackendOpt_.slideWindow();
@@ -622,14 +624,14 @@ namespace esvo2_core
     while (TS_obs_ptr_->second.isEmpty())
     {
       Transformation tr, tr_last;
-      if (ESVO2_System_Status_ == "INITIALIZATION")
+      if (ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION)
       {
         tr.setIdentity();
         it_end->second.setTransformation(tr);
         it_end->second.setOriTransformation(tr);
         TS_obs_ptr_ = &(*it_end);
       }
-      if (ESVO2_System_Status_ == "WORKING")
+      if (ESVO2_System_Status_.load() == SystemStatus::WORKING)
       {
         if (getPoseAt(it_end->first, tr, dvs_frame_id_))
         {
@@ -662,7 +664,7 @@ namespace esvo2_core
         {
           // check if the tracking node is still working normally
           // ESVO2_System_Status_ is updated via subscription callback
-          if (ESVO2_System_Status_ != "WORKING")
+          if (ESVO2_System_Status_.load() != SystemStatus::WORKING)
             return false;
         }
       }
@@ -700,7 +702,7 @@ namespace esvo2_core
 
     /****** Load involved events *****/
     // SGM
-    if (ESVO2_System_Status_ == "INITIALIZATION")
+    if (ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION)
     {
       vEventsPtr_left_SGM_.clear();
       rclcpp::Time t_end, t_begin;
@@ -726,7 +728,7 @@ namespace esvo2_core
     }
 
     // BM
-    if (ESVO2_System_Status_ == "WORKING")
+    if (ESVO2_System_Status_.load() == SystemStatus::WORKING)
     {
       // copy all involved events' pointers
       vALLEventsPtr_left_.clear();   // Used to generate denoising mask (only used to deal with flicker induced by VICON.)
@@ -1103,9 +1105,9 @@ namespace esvo2_core
     mapping_thread_promise_ = std::promise<void>();
     reset_future_ = reset_promise_.get_future();
     mapping_thread_future_ = mapping_thread_promise_.get_future();
-    ESVO2_System_Status_ = "INITIALIZATION";
+    ESVO2_System_Status_.store(SystemStatus::INITIALIZATION);
     auto status_msg = std_msgs::msg::String();
-    status_msg.data = ESVO2_System_Status_;
+    status_msg.data = to_string(ESVO2_System_Status_.load());
     system_status_pub_->publish(status_msg);
     std::thread MappingThread(&esvo2_Mapping::MappingLoop, this,
                               std::move(mapping_thread_promise_), std::move(reset_future_));
@@ -1127,9 +1129,9 @@ namespace esvo2_core
                          invDepth_max_range_, invDepth_min_range_, stdVar_vis_threshold_, age_vis_threshold_);
     publishImage(invDepthImage, t, invDepthMap_pub_);
 
-    if (ESVO2_System_Status_ == "INITIALIZATION")
+    if (ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION)
       publishPointCloud(depthMapPtr, tr, t);
-    if (ESVO2_System_Status_ == "WORKING")
+    if (ESVO2_System_Status_.load() == SystemStatus::WORKING)
     {
       if (FusionStrategy_ == "CONST_FRAMES")
       {

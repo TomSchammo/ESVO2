@@ -37,6 +37,9 @@
 #include <deque>
 #include <mutex>
 #include <future>
+#include <atomic>
+
+#include <esvo2_core/tools/SystemStatus.h>
 
 #include <cv_bridge/cv_bridge.hpp>
 #include <pcl/point_types.h>
@@ -180,7 +183,7 @@ namespace esvo2_core
     // system status communication (ROS2 uses topics instead of global parameters)
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr system_status_pub_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr system_status_sub_;
-    std::string ESVO2_System_Status_;
+    std::atomic<SystemStatus> ESVO2_System_Status_;
     DepthProblemConfig::Ptr dpConfigPtr_, dpConfigPtr_ln_;
     DepthProblemSolver dpSolver_, dpSolver_ln_;
     DepthFusion dFusor_, dFusor_ln_;

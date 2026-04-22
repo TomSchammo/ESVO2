@@ -32,6 +32,9 @@
 #include <mutex>
 #include <future>
 #include <vector>
+#include <atomic>
+
+#include <esvo2_core/tools/SystemStatus.h>
 
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -172,7 +175,7 @@ namespace esvo2_core
     // system status communication (ROS2 uses topics instead of global parameters)
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr system_status_pub_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr system_status_sub_;
-    std::string ESVO2_System_Status_;
+    std::atomic<SystemStatus> ESVO2_System_Status_;
     RegProblemConfig::Ptr rpConfigPtr_;
     RegProblemSolverLM rpSolver_;
     bool initVsFlag;
