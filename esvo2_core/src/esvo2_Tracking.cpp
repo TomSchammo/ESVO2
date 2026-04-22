@@ -81,21 +81,21 @@ esvo2_Tracking::esvo2_Tracking()
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Publishers
-  pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("/esvo2_tracking/pose_pub", 1);
-  path_pub_ = create_publisher<nav_msgs::msg::Path>("/esvo2_tracking/trajectory", 1);
+  pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("/esvo2_tracking/pose_pub", 10);
+  path_pub_ = create_publisher<nav_msgs::msg::Path>("/esvo2_tracking/trajectory", 10);
 
   // Subscribers
   map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "pointcloud", 10,
+    "pointcloud", 20,
     std::bind(&esvo2_Tracking::refMapCallback, this, std::placeholders::_1));
   stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-    "stamped_pose", 10,
+    "stamped_pose", 50,
     std::bind(&esvo2_Tracking::stampedPoseCallback, this, std::placeholders::_1));
   imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
-    "/imu/data", 10,
+    "/imu/data", rclcpp::QoS(500).best_effort(),
     std::bind(&esvo2_Tracking::refImuCallback, this, std::placeholders::_1));
   V_ba_bg_sub_ = create_subscription<events_repacking_tool::msg::VBaBg>(
-    "/esvo2_mapping/V_ba_bg", 10,
+    "/esvo2_mapping/V_ba_bg", 20,
     std::bind(&esvo2_Tracking::VBaBgCallback, this, std::placeholders::_1));
 
   /*** For Visualization and Test ***/

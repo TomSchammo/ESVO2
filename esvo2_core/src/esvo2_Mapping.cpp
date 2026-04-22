@@ -175,7 +175,7 @@ namespace esvo2_core
 
     // callback functions
     stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-      "stamped_pose", 10,
+      "stamped_pose", 50,
       std::bind(&esvo2_Mapping::stampedPoseCallback, this, std::placeholders::_1));
 
     // message_filters subscribers
@@ -197,17 +197,17 @@ namespace esvo2_core
     // point sampling
     if (bpoints_from_AA_)
       AA_frequency_sub_ = create_subscription<sensor_msgs::msg::Image>(
-        "AA_left", 10,
+        "AA_left", 50,
         std::bind(&esvo2_Mapping::AACallback, this, std::placeholders::_1));
     else
       events_left_sub_ = create_subscription<dvs_msgs::msg::EventArray>(
-        "events_left", rclcpp::QoS(10).best_effort(),
+        "events_left", rclcpp::QoS(5000).best_effort(),
         [this](const dvs_msgs::msg::EventArray::SharedPtr msg) { eventsCallback(msg, events_left_); });
 
     // IMU
     if (bUSE_IMU_)
       imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
-        "/imu/data", 10,
+        "/imu/data", rclcpp::QoS(500).best_effort(),
         std::bind(&esvo2_Mapping::refImuCallback, this, std::placeholders::_1));
 
     // TF
@@ -216,12 +216,12 @@ namespace esvo2_core
 
     // result publishers
     invDepthMap_pub_ = image_transport::create_publisher(this, "Inverse_Depth_Map2");
-    V_ba_bg_pub_ = create_publisher<events_repacking_tool::msg::VBaBg>("/esvo2_mapping/V_ba_bg", 1);
-    pc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_local2", 1);
-    pc_filtered_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_filtered2", 1);
+    V_ba_bg_pub_ = create_publisher<events_repacking_tool::msg::VBaBg>("/esvo2_mapping/V_ba_bg", 5);
+    pc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_local2", 5);
+    pc_filtered_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_filtered2", 5);
     if (bVisualizeGlobalPC_)
     {
-      gpc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_global2", 1);
+      gpc_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("/esvo2_mapping/pointcloud_global2", 5);
       pc_global_->reserve(5000000);
       t_last_pub_pc_ = 0.0;
     }
