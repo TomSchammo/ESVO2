@@ -698,7 +698,7 @@ void esvo2_Tracking::renameOldTraj()
 void esvo2_Tracking::groundTruthCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   std::ofstream  f;
-  f.open("/home/njk/output/ESVO2/stamped_groundtruth.txt", std::ofstream::app);
+  f.open("/tmp/esvo2/stamped_groundtruth.txt", std::ofstream::app);
   f << std::fixed;
   f.setf(std::ios::fixed, std::ios::floatfield);
   f.precision(9);

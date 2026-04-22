@@ -17,6 +17,6 @@
     RegProblemType: 1  # 0 numerical, 1 analytical
     SAVE_TRAJECTORY: true
     # PATH_TO_SAVE_TRAJECTORY: "/home/bell/data/ESVO2_result/"
-    PATH_TO_SAVE_TRAJECTORY: "/home/njk/output/ESVO2/"
+    PATH_TO_SAVE_TRAJECTORY: "/tmp/esvo2/"
     VISUALIZE_TRAJECTORY: true
     USE_IMU: false
