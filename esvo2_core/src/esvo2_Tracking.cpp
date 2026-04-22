@@ -241,8 +241,8 @@ bool
 esvo2_Tracking::refDataTransferring()
 {
   // load reference info
-  ref_.t_ = rclcpp::Time(static_cast<int64_t>(refPCMap_.rbegin()->first.seconds() * 1e9));
-  rclcpp::Time t(static_cast<int64_t>((refPCMap_.rbegin()->first.seconds() - 0.001) * 1e9));
+  ref_.t_ = refPCMap_.rbegin()->first;
+  rclcpp::Time t = refPCMap_.rbegin()->first - rclcpp::Duration::from_seconds(0.001);
   // ESVO2_System_Status_ is updated via subscription callback
 
   if(ESVO2_System_Status_.load() == SystemStatus::INITIALIZATION && ets_ == IDLE)

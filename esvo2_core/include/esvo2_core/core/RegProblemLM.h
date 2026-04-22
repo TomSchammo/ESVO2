@@ -59,7 +59,7 @@ struct RegProblemConfig
 struct RefFrame
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  rclcpp::Time t_;
+  rclcpp::Time t_{0, 0, RCL_ROS_TIME};
   std::vector<pcl::PointXYZRGBL*> vPointXYZPtr_;
   Transformation tr_;
 };
@@ -67,7 +67,7 @@ struct RefFrame
 struct CurFrame
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  rclcpp::Time t_;
+  rclcpp::Time t_{0, 0, RCL_ROS_TIME};
   TimeSurfaceObservation* pTsObs_;
   Transformation tr_;
   Transformation tr_old_;
