@@ -4,3 +4,9 @@
 [submodule "dvs_msgs"]
 	path = dvs_msgs
 	url = https://github.com/ros-event-camera/dvs_msgs.git
+[submodule "minkindr"]
+	path = minkindr
+	url = https://github.com/TomSchammo/minkindr.git
+[submodule "eigen_checks"]
+	path = eigen_checks
+	url = https://github.com/TomSchammo/eigen_checks.git
