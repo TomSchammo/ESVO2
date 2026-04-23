@@ -6,6 +6,7 @@ ROS2 launch file for ESVO2 system with DVXplorer mapping configuration.
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -14,18 +15,24 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # Package directories
     esvo2_core_share = get_package_share_directory('esvo2_core')
-    image_representation_share = get_package_share_directory('image_representation')
+    image_representation_share = get_package_share_directory(
+        'image_representation')
 
     # Launch arguments
     calib_dir_arg = DeclareLaunchArgument(
         'calib_dir',
         default_value=os.path.join(esvo2_core_share, 'calib', 'dvx_7.15'),
-        description='Calibration directory path'
-    )
+        description='Calibration directory path')
+
+    rviz_arg = DeclareLaunchArgument('rviz',
+                                     default_value='true',
+                                     description='Launch RViz visualization')
 
     # Image representation parameters
-    ir_params_file = os.path.join(image_representation_share, 'cfg', 'image_representation_fast.yaml')
-    ir_params_file_r = os.path.join(image_representation_share, 'cfg', 'image_representation_fast_r.yaml')
+    ir_params_file = os.path.join(image_representation_share, 'cfg',
+                                  'image_representation_fast.yaml')
+    ir_params_file_r = os.path.join(image_representation_share, 'cfg',
+                                    'image_representation_fast_r.yaml')
 
     # Image Representation - Left
     image_representation_left = Node(
@@ -38,21 +45,20 @@ def generate_launch_description():
             ('image', '/dvxplorer_left/image_raw'),
             ('camera_info', '/dvxplorer_left/camera_info'),
             ('image_representation_TS_', 'image_representation_TS_l'),
-            ('image_representation_negative_TS_', 'image_representation_negative_TS_l'),
+            ('image_representation_negative_TS_',
+             'image_representation_negative_TS_l'),
             ('image_representation_AA_frequency_', 'AA_left'),
             ('image_representation_AA_mat_', 'AA_map'),
             ('dx_image_pub_', 'dx_image_pub_l'),
             ('dy_image_pub_', 'dy_image_pub_l'),
         ],
         parameters=[
-            ir_params_file,
-            {
+            ir_params_file, {
                 'use_sim_time': True,
                 'calibInfoDir': LaunchConfiguration('calib_dir'),
             }
         ],
-        output='screen'
-    )
+        output='screen')
 
     # Image Representation - Right
     image_representation_right = Node(
@@ -67,17 +73,16 @@ def generate_launch_description():
             ('image_representation_TS_', 'image_representation_TS_r'),
         ],
         parameters=[
-            ir_params_file_r,
-            {
+            ir_params_file_r, {
                 'use_sim_time': True,
                 'calibInfoDir': LaunchConfiguration('calib_dir'),
             }
         ],
-        output='screen'
-    )
+        output='screen')
 
     # Mapping node
-    mapping_params_file = os.path.join(esvo2_core_share, 'cfg', 'mapping', 'mapping_dvx_AA_mapping.yaml')
+    mapping_params_file = os.path.join(esvo2_core_share, 'cfg', 'mapping',
+                                       'mapping_dvx_AA_mapping.yaml')
     esvo2_mapping = Node(
         package='esvo2_core',
         executable='esvo2_Mapping',
@@ -94,19 +99,18 @@ def generate_launch_description():
             ('/imu/data', '/dvxplorer_left/imu'),
         ],
         parameters=[
-            mapping_params_file,
-            {
+            mapping_params_file, {
                 'use_sim_time': True,
                 'dvs_frame_id': 'dvs',
                 'world_frame_id': 'map',
                 'calibInfoDir': LaunchConfiguration('calib_dir'),
             }
         ],
-        output='screen'
-    )
+        output='screen')
 
     # Tracking node
-    tracking_params_file = os.path.join(esvo2_core_share, 'cfg', 'tracking', 'tracking_dvx_AA_mapping.yaml')
+    tracking_params_file = os.path.join(esvo2_core_share, 'cfg', 'tracking',
+                                        'tracking_dvx_AA_mapping.yaml')
     esvo2_tracking = Node(
         package='esvo2_core',
         executable='esvo2_Tracking',
@@ -124,31 +128,31 @@ def generate_launch_description():
             ('/imu/data', '/dvxplorer_left/imu'),
         ],
         parameters=[
-            tracking_params_file,
-            {
+            tracking_params_file, {
                 'use_sim_time': True,
                 'dvs_frame_id': 'dvs',
                 'world_frame_id': 'map',
                 'calibInfoDir': LaunchConfiguration('calib_dir'),
             }
         ],
-        output='screen'
-    )
+        output='screen')
 
     # RViz
     rviz_config = os.path.join(esvo2_core_share, 'esvo2_system_DSEC.rviz')
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', rviz_config],
-        parameters=[{'use_sim_time': True}],
-        output='screen'
-    )
+    rviz_node = Node(package='rviz2',
+                     executable='rviz2',
+                     name='rviz2',
+                     arguments=['-d', rviz_config],
+                     parameters=[{
+                         'use_sim_time': True
+                     }],
+                     output='screen',
+                     condition=IfCondition(LaunchConfiguration('rviz')))
 
     return LaunchDescription([
         # Arguments
         calib_dir_arg,
+        rviz_arg,
         # Nodes
         image_representation_left,
         image_representation_right,
