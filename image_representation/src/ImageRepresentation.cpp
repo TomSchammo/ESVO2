@@ -27,16 +27,16 @@ namespace image_representation
     // setup publishers using image_transport
     if (is_left_)
     {
-      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_", rclcpp::QoS(5).get_rmw_qos_profile());
-      image_representation_pub_negative_TS_ = image_transport::create_publisher(this, "image_representation_negative_TS_", rclcpp::QoS(5).get_rmw_qos_profile());
-      image_representation_pub_AA_frequency_ = image_transport::create_publisher(this, "image_representation_AA_frequency_", rclcpp::QoS(5).get_rmw_qos_profile());
-      image_representation_pub_AA_mat_ = image_transport::create_publisher(this, "image_representation_AA_mat_", rclcpp::QoS(5).get_rmw_qos_profile());
-      dx_image_pub_ = image_transport::create_publisher(this, "dx_image_pub_", rclcpp::QoS(5).get_rmw_qos_profile());
-      dy_image_pub_ = image_transport::create_publisher(this, "dy_image_pub_", rclcpp::QoS(5).get_rmw_qos_profile());
+      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_", rclcpp::QoS(50).get_rmw_qos_profile());
+      image_representation_pub_negative_TS_ = image_transport::create_publisher(this, "image_representation_negative_TS_", rclcpp::QoS(50).get_rmw_qos_profile());
+      image_representation_pub_AA_frequency_ = image_transport::create_publisher(this, "image_representation_AA_frequency_", rclcpp::QoS(50).get_rmw_qos_profile());
+      image_representation_pub_AA_mat_ = image_transport::create_publisher(this, "image_representation_AA_mat_", rclcpp::QoS(50).get_rmw_qos_profile());
+      dx_image_pub_ = image_transport::create_publisher(this, "dx_image_pub_", rclcpp::QoS(50).get_rmw_qos_profile());
+      dy_image_pub_ = image_transport::create_publisher(this, "dy_image_pub_", rclcpp::QoS(50).get_rmw_qos_profile());
     }
     else
     {
-      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_", rclcpp::QoS(5).get_rmw_qos_profile());
+      image_representation_pub_TS_ = image_transport::create_publisher(this, "image_representation_TS_", rclcpp::QoS(50).get_rmw_qos_profile());
     }
 
     // Get use_sim_time (automatically declared by ROS 2)

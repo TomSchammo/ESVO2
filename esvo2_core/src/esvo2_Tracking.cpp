@@ -70,14 +70,14 @@ esvo2_Tracking::esvo2_Tracking()
 
   // message_filters synchronizers
   TS_sync_ = std::make_shared<message_filters::Synchronizer<ApproximateSyncPolicy>>(
-    ApproximateSyncPolicy(10), TS_left_sub_, TS_right_sub_);
+    ApproximateSyncPolicy(50), TS_left_sub_, TS_right_sub_);
   TS_negaTS_sync_ = std::make_shared<message_filters::Synchronizer<ApproximateSyncPolicy_negaTS>>(
-    ApproximateSyncPolicy_negaTS(10), TS_left_sub_, TS_negative_sub_, TS_dx_sub_, TS_dy_sub_);
+    ApproximateSyncPolicy_negaTS(50), TS_left_sub_, TS_negative_sub_, TS_dx_sub_, TS_dy_sub_);
   TS_negaTS_sync_->registerCallback(std::bind(&esvo2_Tracking::timeSurface_NegaTS_Callback, this,
     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
   // TF
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock(), tf2::Duration(std::chrono::seconds(100)));
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Publishers

@@ -188,7 +188,7 @@ namespace esvo2_core
 
     // message_filters synchronizer
     TS_AA_sync_ = std::make_shared<message_filters::Synchronizer<ApproxSyncPolicy2>>(
-      ApproxSyncPolicy2(10), TS_left_sub_, TS_right_sub_, AA_map_sub_,
+      ApproxSyncPolicy2(50), TS_left_sub_, TS_right_sub_, AA_map_sub_,
       TS_negative_sub_, TS_dx_sub_, TS_dy_sub_);
     TS_AA_sync_->registerCallback(std::bind(&esvo2_Mapping::timeSurfaceCallback, this,
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -211,7 +211,7 @@ namespace esvo2_core
         std::bind(&esvo2_Mapping::refImuCallback, this, std::placeholders::_1));
 
     // TF
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock(), tf2::Duration(std::chrono::seconds(100)));
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     // result publishers
