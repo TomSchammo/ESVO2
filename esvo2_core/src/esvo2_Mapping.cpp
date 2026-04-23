@@ -175,7 +175,7 @@ namespace esvo2_core
 
     // callback functions
     stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-      "stamped_pose", 50,
+      "stamped_pose", 100,
       std::bind(&esvo2_Mapping::stampedPoseCallback, this, std::placeholders::_1));
 
     // message_filters subscribers

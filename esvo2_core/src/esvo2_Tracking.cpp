@@ -89,7 +89,7 @@ esvo2_Tracking::esvo2_Tracking()
     "pointcloud", 20,
     std::bind(&esvo2_Tracking::refMapCallback, this, std::placeholders::_1));
   stampedPose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-    "stamped_pose", 50,
+    "stamped_pose", 100,
     std::bind(&esvo2_Tracking::stampedPoseCallback, this, std::placeholders::_1));
   imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
     "/imu/data", rclcpp::QoS(500).best_effort(),
