@@ -248,7 +248,7 @@ namespace esvo2_core
       std::promise<void> prom_mapping,
       std::future<void> future_reset)
   {
-    auto r = std::make_unique<rclcpp::Rate>(mapping_rate_hz_);
+    auto r = std::make_unique<rclcpp::Rate>(mapping_rate_hz_, this->get_clock());
     while (rclcpp::ok())
     {
       // reset mapping rate
