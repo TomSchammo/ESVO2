@@ -398,14 +398,14 @@ namespace esvo2_core
           (TS_obs_ptr_->second.tr_last_.getPosition() - TS_obs_ptr_->second.tr_.getPosition()).norm() < distance_from_last_frame_))
     {
       Eigen::Matrix4d T_last_now = TS_obs_ptr_->second.tr_last_.getTransformationMatrix().inverse() * TS_obs_ptr_->second.tr_.getTransformationMatrix();
-      
+
       // get the direction of epipolar line
-      getReprojection(vEMP_last_pre, T_last_now, vDenoisedEventsPtr_left_dy_); 
+      getReprojection(vEMP_last_pre, T_last_now, vDenoisedEventsPtr_left_dy_);
       cv::cv2eigen(TS_obs_ptr_->second.cvImagePtr_AA_map_->image.clone(), TS_obs_ptr_->second.AA_map_);
       cv::cv2eigen(TS_obs_ptr_->second.cvImagePtr_last_->image.clone(), TS_obs_ptr_->second.TS_last_);
-      
+
       // temporal stereo matching
-      ebm_.createMatchProblemTwoFrames(TS_obs_ptr_, &st_map_, &vDenoisedEventsPtr_left_dy_, &vEMP_last_pre); 
+      ebm_.createMatchProblemTwoFrames(TS_obs_ptr_, &st_map_, &vDenoisedEventsPtr_left_dy_, &vEMP_last_pre);
       ebm_.match_all_HyperThreadTwoFrames(vEMP_last, vEMP_last_fail);
     }
 
@@ -437,7 +437,7 @@ namespace esvo2_core
 
     t_solve = tt_mapping.toc();
     tt_mapping.tic();
-    
+
     if (FusionStrategy_ == "CONST_POINTS")  // Fusion (strategy 1: const number of point)
     {
       size_t numFusionPoints = 0;
@@ -897,7 +897,7 @@ namespace esvo2_core
       EQ.erase(EQ.begin(), EQ.begin() + NUM_EVENTS_TO_REMOVE);
     }
   }
-  
+
 
   void esvo2_Mapping::timeSurfaceCallback(
       const sensor_msgs::msg::Image::ConstSharedPtr &time_surface_left,
@@ -1364,7 +1364,7 @@ namespace esvo2_core
 
     // get gradient map
     cv::Mat events_map = cv::Mat::zeros(TS_obs_ptr_->second.cvImagePtr_left_->image.size(), CV_8U);
-    
+
     vDenoisedEventsPtr_left_dx_.clear();
     vDenoisedEventsPtr_left_dy_.clear();
     vDenoisedEventsPtr_left_dx_.reserve(PROCESS_EVENT_NUM_);
