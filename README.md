@@ -107,13 +107,13 @@ roslaunch image_representation image_representation.launch
 Then play the input (already downloaded) bag file by running
 
 ```shell
-rosbag play xxx.bag --clock
+ros2 bag play xxx --clock-topics-all
 ```
 
 If lag occurs during the run, try to reduce the rate of rosbag
 
 ```shell
-rosbag play xxx.bag --clock -r 0.5
+ros2 bag play xxx --clock-topics-all -r 0.5
 ```
 
 ## 2.2 Running the system on DSEC dataset
@@ -136,7 +136,7 @@ roslaunch esvo2_core system_xxx.launch
 This will launch two *image_representation nodes* (for left and right event cameras, respectively), the mapping node and the tracking node simultaneously. Then play the input (already downloaded) bag file by running
 
 ```shell
-rosbag play xxx.bag --clock
+ros2 bag play xxx --clock-topics-all
 ```
 
 The trajectories will be saved in the path in `/cfg/tracking_xxx.yaml`.
@@ -259,7 +259,7 @@ The original ESVO2 trajectories and GT poses for various sequences on the 5 data
 
 * If you use a PC with limited computational resources, you could slow down the playback of the rosbag by a factor, e.g.
 
-  `$ rosbag play xxx.bag -r 0.5 --clock`
+  `$ ros2 bag play xxx -r 0.5 --clock-topics-all`
 
 - In this example, the bag file is played at a factor of 0.5, and thus, the synchronization signal is set to 50 Hz accordingly. These modifications must be made accordingly such that the time surface is updated (refreshed) at 100 Hz in simulation time. You can check this by running,
 
